@@ -2,14 +2,11 @@
 import request from '@/utils/request'
 
 
-// json
-export function getJSON() {
+
+
+export function uploadSingleNew(fileId) {
   return request({
-    url: '/tool/news',
-    headers: {
-      isToken: false
-    },
-    method: 'get',
-    timeout: 20000
+    url: 'tool/news',  // 替换为实际文件信息接口
+    method: 'get'
   })
 }
