@@ -2,7 +2,23 @@ from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, Auto
 from qwen_vl_utils import process_vision_info
 
 
-class qwen:
+
+def generation_text(
+    is_having_image: bool = False,
+    title: str = "未知标题",
+    content: str = "未知正文",
+    category: str = "未知类别",
+    date: str = "未知日期",
+    platform: str = "未知平台"
+) -> str:
+    if is_having_image:
+        text=f"这是一个在{date}{platform}发布的新闻。标题是{title}，正文是{content}，是属于{category}。<image>请你告诉我是否是谣言。"
+    else:
+        text = f"这是一个在{date}{platform}发布的新闻。标题是{title}，正文是{content}，是属于{category}。<image>请你告诉我是否是谣言。"
+    return text
+
+
+class Qwen:
     def __init__(self):
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             "qwen", torch_dtype="auto", device_map="auto"
@@ -10,16 +26,16 @@ class qwen:
 
         self.processor = AutoProcessor.from_pretrained("qwen")
 
-    def predict(self,text,pathToImages):
+    def predict(self,messages_text,path_to_images):
         messages = [
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "image",
-                        "image": pathToImages,
+                        "image": path_to_images,
                     },
-                    {"type": "text", "text": text},
+                    {"type": "text", "text": messages_text},
                 ],
             }
         ]
@@ -50,3 +66,8 @@ class qwen:
         return output_text
 
 
+'''
+用法：model=qwen()  
+print(model.predict(generation_text(content="一女子居然！"))
+
+'''
