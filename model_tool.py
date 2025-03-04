@@ -1,39 +1,41 @@
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
+import json
 
 
+def IsRumours(
+    isNewsTrue: int
+    )-> None:
+    if isNewsTrue==0:
+        print("事实")
+    elif isNewsTrue==1:
+        print("尚未定论")
+    elif isNewsTrue==2:
+        print("谣言")
 
-# 下面是function calling的定义 网上偷的
-qwen_functions = [
+tools = [
     {
-        "name_for_human": "谷歌搜索",
-        "name_for_model": "google_search",
-        "description_for_model": "谷歌搜索是一个通用搜索引擎，可用于访问互联网、查询百科知识、了解时事新闻等。"
-        + " Format the arguments as a JSON object.",
-        "parameters": [
-            {
-                "name": "search_query",
-                "description": "搜索关键词或短语",
-                "required": True,
-                "schema": {"type": "string"},
+        "type": "function",
+        "function": {
+            "name": "IsRumours",
+            "description": "当需要输出最终谣言判定结论时调用此函数，参数只能从0/1/2中选择。调用后用户将直接看到判定结果。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "isNewsTrue": {
+                        "type": "integer",
+                        "enum": [0, 1, 2],
+                        "description": "谣言判定结果：0=事实，1=尚未定论，2=谣言"
+                    }
+                },
+                "required": ["isNewsTrue"]
             }
-        ],
-    },
-    {
-        "name_for_human": "文生图",
-        "name_for_model": "image_gen",
-        "description_for_model": "文生图是一个AI绘画（图像生成）服务，输入文本描述，返回根据文本作画得到的图片的URL。"
-        + " Format the arguments as a JSON object.",
-        "parameters": [
-            {
-                "name": "prompt",
-                "description": "英文关键词，描述了希望图像具有什么内容",
-                "required": True,
-                "schema": {"type": "string"},
-            }
-        ],
-    },
+        }
+    }
 ]
+
+
+
 
 
 def generation_text(
@@ -54,12 +56,16 @@ def generation_text(
 class Qwen:
     def __init__(self):
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            "qwen", torch_dtype="auto", device_map="auto"
+            "qwen",
+            torch_dtype="auto",
+            device_map="auto"
         )
 
+        self.tokenizer = AutoTokenizer.from_pretrained("qwen")
         self.processor = AutoProcessor.from_pretrained("qwen")
 
     def predict(self,messages_text,path_to_images=None):
+
         if path_to_images:
             messages = [
             {
@@ -73,6 +79,14 @@ class Qwen:
                 ],
             }
         ]
+            text = self.processor.apply_chat_template(
+            messages, 
+            tools=tools, 
+            add_generation_prompt=True, 
+            tokenize=False
+            )
+
+
         else:
             messages = [
             {
@@ -82,18 +96,24 @@ class Qwen:
                 ],
             }
         ]
-
-        text = self.processor.apply_chat_template(
+            text = self.tokenizer.apply_chat_template(
             messages, 
-            tokenize=False, 
-            add_generation_prompt=True,
-            function=qwen_functions,
-            function_call="auto"
-        )
+            tools=tools, 
+            add_generation_prompt=True, 
+            tokenize=False
+            )
+
+
+        text = self.tokenizer.apply_chat_template(
+            messages, 
+            tools=tools, 
+            add_generation_prompt=True, 
+            tokenize=False
+            )
 
         image_inputs, video_inputs = process_vision_info(messages)
 
-        inputs = self.processor(
+        inputs = self.tokenizer(
             text=[text],
             images=image_inputs,
             videos=video_inputs,
@@ -107,14 +127,9 @@ class Qwen:
         generated_ids_trimmed = [
             out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
-        output_text = self.processor.batch_decode(
+        output_text = self.tokenizer.batch_decode(
             generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
         )
         return output_text
 
 
-'''
-用法：model=qwen()  
-print(model.predict(generation_text(content="一女子居然！"))
-
-'''
