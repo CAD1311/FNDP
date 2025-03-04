@@ -1,18 +1,18 @@
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from module_news.entity.do.news_do import NewsInfo, NewsImg
-from module_news.entity.vo.news_vo import NewsModel, NewsPageQueryModel, ImgModel
+from module_news.entity.do.news_info_do import NewsInfo, NewsImg
+from module_news.entity.vo.news_info_vo import News_infoModel, News_infoPageQueryModel, ImgModel
 from utils.page_util import PageUtil
 
 
-class NewsDao:
+class News_infoDao:
     """
     新闻信息模块数据库操作层
     """
 
     @classmethod
-    async def get_news_detail_by_id(cls, db: AsyncSession, news_id: int):
+    async def get_news_info_detail_by_id(cls, db: AsyncSession, news_id: int):
         """
         根据获取新闻信息详细信息
 
@@ -20,7 +20,7 @@ class NewsDao:
         :param news_id: 
         :return: 新闻信息信息对象
         """
-        news_info = (
+        news_info_info = (
             (
                 await db.execute(
                     select(NewsInfo)
@@ -34,22 +34,22 @@ class NewsDao:
             .first()
         )
 
-        return news_info
+        return news_info_info
 
     @classmethod
-    async def get_news_detail_by_info(cls, db: AsyncSession, news: NewsModel):
+    async def get_news_info_detail_by_info(cls, db: AsyncSession, news_info: News_infoModel):
         """
         根据新闻信息参数获取新闻信息信息
 
         :param db: orm对象
-        :param news: 新闻信息参数对象
+        :param news_info: 新闻信息参数对象
         :return: 新闻信息信息对象
         """
-        news_info = (
+        news_info_info = (
             (
                 await db.execute(
                     select(NewsInfo).where(
-                        NewsInfo.user_id == news.user_id if news.user_id else True,
+                        NewsInfo.user_id == news_info.user_id if news_info.user_id else True,
                     )
                 )
             )
@@ -57,10 +57,10 @@ class NewsDao:
             .first()
         )
 
-        return news_info
+        return news_info_info
 
     @classmethod
-    async def get_news_list(cls, db: AsyncSession, query_object: NewsPageQueryModel, is_page: bool = False):
+    async def get_news_info_list(cls, db: AsyncSession, query_object: News_infoPageQueryModel, is_page: bool = False):
         """
         根据查询参数获取新闻信息列表信息
 
@@ -81,46 +81,46 @@ class NewsDao:
             .order_by(NewsInfo.news_id)
             .distinct()
         )
-        news_list = await PageUtil.paginate(db, query, query_object.page_num, query_object.page_size, is_page)
+        news_info_list = await PageUtil.paginate(db, query, query_object.page_num, query_object.page_size, is_page)
 
-        return news_list
+        return news_info_list
 
     @classmethod
-    async def add_news_dao(cls, db: AsyncSession, news: NewsModel):
+    async def add_news_info_dao(cls, db: AsyncSession, news_info: News_infoModel):
         """
         新增新闻信息数据库操作
 
         :param db: orm对象
-        :param news: 新闻信息对象
+        :param news_info: 新闻信息对象
         :return:
         """
-        db_news = NewsInfo(**news.model_dump(exclude={'newsimg_list', }))
-        db.add(db_news)
+        db_news_info = NewsInfo(**news_info.model_dump(exclude={'newsimg_list', }))
+        db.add(db_news_info)
         await db.flush()
 
-        return db_news
+        return db_news_info
 
     @classmethod
-    async def edit_news_dao(cls, db: AsyncSession, news: dict):
+    async def edit_news_info_dao(cls, db: AsyncSession, news_info: dict):
         """
         编辑新闻信息数据库操作
 
         :param db: orm对象
-        :param news: 需要更新的新闻信息字典
+        :param news_info: 需要更新的新闻信息字典
         :return:
         """
-        await db.execute(update(NewsInfo), [news])
+        await db.execute(update(NewsInfo), [news_info])
 
     @classmethod
-    async def delete_news_dao(cls, db: AsyncSession, news: NewsModel):
+    async def delete_news_info_dao(cls, db: AsyncSession, news_info: News_infoModel):
         """
         删除新闻信息数据库操作
 
         :param db: orm对象
-        :param news: 新闻信息对象
+        :param news_info: 新闻信息对象
         :return:
         """
-        await db.execute(delete(NewsInfo).where(NewsInfo.news_id.in_([news.news_id])))
+        await db.execute(delete(NewsInfo).where(NewsInfo.news_id.in_([news_info.news_id])))
 
     @classmethod
     async def add_img_dao(cls, db: AsyncSession, img: ImgModel):

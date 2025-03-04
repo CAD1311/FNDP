@@ -15,7 +15,7 @@ class NewsInfo(Base):
     user_id = Column(BigInteger, nullable=False, comment='')
     img_id = Column(BigInteger, nullable=True, comment='')
 
-    newsimg_list = relationship('NewsImg', back_populates='news')
+    newsimg_list = relationship('NewsImg', back_populates='news_info')
 
 
 class NewsImg(Base):
@@ -30,4 +30,4 @@ class NewsImg(Base):
     img_dis = Column(Text, nullable=False, comment='图片描述')
     img_url = Column(String(100), nullable=True, comment='图片路径')
 
-    news = relationship('NewsInfo', back_populates='newsimg_list')
+    news_info = relationship('NewsInfo', back_populates='newsimg_list')

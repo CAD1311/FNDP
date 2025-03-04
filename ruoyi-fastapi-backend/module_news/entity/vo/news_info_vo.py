@@ -5,7 +5,7 @@ from typing import List, Optional
 from module_admin.annotation.pydantic_annotation import as_query
 
 
-class NewsBaseModel(BaseModel):
+class News_infoBaseModel(BaseModel):
     """
     新闻信息表对应pydantic模型
     """
@@ -26,7 +26,7 @@ class NewsBaseModel(BaseModel):
         self.get_user_id()
 
 
-class NewsModel(NewsBaseModel):
+class News_infoModel(News_infoBaseModel):
     """
     新闻信息表对应pydantic模型
     """
@@ -54,7 +54,7 @@ class ImgModel(BaseModel):
         self.get_img_url()
 
 
-class NewsQueryModel(NewsBaseModel):
+class News_infoQueryModel(News_infoBaseModel):
     """
     新闻信息不分页查询模型
     """
@@ -64,7 +64,7 @@ class NewsQueryModel(NewsBaseModel):
 
 
 @as_query
-class NewsPageQueryModel(NewsQueryModel):
+class News_infoPageQueryModel(News_infoQueryModel):
     """
     新闻信息分页查询模型
     """
@@ -73,7 +73,7 @@ class NewsPageQueryModel(NewsQueryModel):
     page_size: int = Field(default=10, description='每页记录数')
 
 
-class DeleteNewsModel(BaseModel):
+class DeleteNews_infoModel(BaseModel):
     """
     删除新闻信息模型
     """
