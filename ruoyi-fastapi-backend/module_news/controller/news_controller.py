@@ -16,7 +16,7 @@ from utils.response_util import ResponseUtil
 import datetime
 
 
-newsController = APIRouter(prefix='/news/news', dependencies=[Depends(LoginService.get_current_user)])
+newsController = APIRouter(prefix='/news/news_info', dependencies=[Depends(LoginService.get_current_user)])
 
 
 @newsController.get(
