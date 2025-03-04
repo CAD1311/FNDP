@@ -59,8 +59,9 @@ class Qwen:
 
         self.processor = AutoProcessor.from_pretrained("qwen")
 
-    def predict(self,messages_text,path_to_images):
-        messages = [
+    def predict(self,messages_text,path_to_images=None):
+        if path_to_images:
+            messages = [
             {
                 "role": "user",
                 "content": [
@@ -72,9 +73,22 @@ class Qwen:
                 ],
             }
         ]
+        else:
+            messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": messages_text},
+                ],
+            }
+        ]
 
         text = self.processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True,
+            function=qwen_functions,
+            function_call="auto"
         )
 
         image_inputs, video_inputs = process_vision_info(messages)
