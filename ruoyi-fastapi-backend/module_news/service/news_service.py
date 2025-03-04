@@ -44,7 +44,7 @@ class NewsService:
             add_news = await NewsDao.add_news_dao(query_db, page_object)
             if add_news:
                 for sub_table in page_object.newsimg_list:
-                    await NewsDao.add_news_img_dao(query_db, sub_table)
+                    await NewsDao.add_img_dao(query_db, sub_table)
             await query_db.commit()
             return CrudResponseModel(is_success=True, message='新增成功')
         except Exception as e:
@@ -66,9 +66,9 @@ class NewsService:
             try:
                 await NewsDao.edit_news_dao(query_db, edit_news)
                 for sub_table in news_info.newsimg_list:
-                    await NewsDao.delete_news_img_dao(query_db, sub_table)
+                    await NewsDao.delete_img_dao(query_db, sub_table)
                 for sub_table in page_object.newsimg_list:
-                    await NewsDao.add_news_img_dao(query_db, sub_table)
+                    await NewsDao.add_img_dao(query_db, sub_table)
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='更新成功')
             except Exception as e:
@@ -92,7 +92,7 @@ class NewsService:
                 for news_id in news_id_list:
                     news = await cls.news_detail_services(query_db, int(news_id))
                     for sub_table in news.newsimg_list:
-                        await NewsDao.delete_news_img_dao(query_db, sub_table)
+                        await NewsDao.delete_img_dao(query_db, sub_table)
                     await NewsDao.delete_news_dao(query_db, NewsModel(newsId=news_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功')
@@ -131,7 +131,8 @@ class NewsService:
         mapping_dict = {
             'newsId': '',
             'newsContent': '新闻内容',
-            'userId': '关联用户',
+            'userId': '',
+            'imgId': '',
         }
         binary_data = ExcelUtil.export_list2excel(news_list, mapping_dict)
 

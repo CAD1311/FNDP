@@ -1,4 +1,4 @@
-from sqlalchemy import String, BigInteger, ForeignKey, Column, Text
+from sqlalchemy import ForeignKey, Column, String, Text, BigInteger
 from sqlalchemy.orm import relationship
 from config.database import Base
 
@@ -12,7 +12,8 @@ class NewsInfo(Base):
 
     news_id = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False, comment='')
     news_content = Column(Text, nullable=True, comment='新闻内容')
-    user_id = Column(BigInteger, nullable=False, comment='关联用户')
+    user_id = Column(BigInteger, nullable=False, comment='')
+    img_id = Column(BigInteger, nullable=True, comment='')
 
     newsimg_list = relationship('NewsImg', back_populates='news')
 
@@ -28,6 +29,5 @@ class NewsImg(Base):
     img_title = Column(String(100), nullable=False, comment='图片标题')
     img_dis = Column(Text, nullable=False, comment='图片描述')
     img_url = Column(String(100), nullable=True, comment='图片路径')
-    news_id = Column(BigInteger, nullable=True, comment='所属新闻')
 
     news = relationship('NewsInfo', back_populates='newsimg_list')

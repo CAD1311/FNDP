@@ -2,7 +2,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from module_news.entity.do.news_do import NewsInfo, NewsImg
-from module_news.entity.vo.news_vo import NewsModel, NewsPageQueryModel, News_imgModel
+from module_news.entity.vo.news_vo import NewsModel, NewsPageQueryModel, ImgModel
 from utils.page_util import PageUtil
 
 
@@ -76,6 +76,7 @@ class NewsDao:
                 NewsInfo.news_id == query_object.news_id if query_object.news_id else True,
                 NewsInfo.news_content == query_object.news_content if query_object.news_content else True,
                 NewsInfo.user_id == query_object.user_id if query_object.user_id else True,
+                NewsInfo.img_id == query_object.img_id if query_object.img_id else True,
             )
             .order_by(NewsInfo.news_id)
             .distinct()
@@ -122,38 +123,38 @@ class NewsDao:
         await db.execute(delete(NewsInfo).where(NewsInfo.news_id.in_([news.news_id])))
 
     @classmethod
-    async def add_news_img_dao(cls, db: AsyncSession, news_img: News_imgModel):
+    async def add_img_dao(cls, db: AsyncSession, img: ImgModel):
         """
         新增新闻图片数据库操作
 
         :param db: orm对象
-        :param news_img: 新闻图片对象
+        :param img: 新闻图片对象
         :return:
         """
-        db_news_img = NewsImg(**news_img.model_dump())
-        db.add(db_news_img)
+        db_img = NewsImg(**img.model_dump())
+        db.add(db_img)
         await db.flush()
 
-        return db_news_img
+        return db_img
 
     @classmethod
-    async def edit_news_img_dao(cls, db: AsyncSession, news_img: dict):
+    async def edit_img_dao(cls, db: AsyncSession, img: dict):
         """
         编辑新闻图片数据库操作
 
         :param db: orm对象
-        :param news_img: 需要更新的新闻图片字典
+        :param img: 需要更新的新闻图片字典
         :return:
         """
-        await db.execute(update(NewsImg), [news_img])
+        await db.execute(update(NewsImg), [img])
 
     @classmethod
-    async def delete_news_img_dao(cls, db: AsyncSession, news_img: News_imgModel):
+    async def delete_img_dao(cls, db: AsyncSession, img: ImgModel):
         """
         删除新闻图片数据库操作
 
         :param db: orm对象
-        :param news_img: 新闻图片对象
+        :param img: 新闻图片对象
         :return:
         """
-        await db.execute(delete(NewsImg).where(NewsImg.img_id.in_([news_img.img_id])))
+        await db.execute(delete(NewsImg).where(NewsImg.img_id.in_([img.img_id])))

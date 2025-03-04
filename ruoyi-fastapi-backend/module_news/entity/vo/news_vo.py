@@ -14,11 +14,13 @@ class NewsBaseModel(BaseModel):
 
     news_id: Optional[int] = Field(default=None, description='')
     news_content: Optional[str] = Field(default=None, description='新闻内容')
-    user_id: Optional[int] = Field(default=None, description='关联用户')
+    user_id: Optional[int] = Field(default=None, description='')
+    img_id: Optional[int] = Field(default=None, description='')
 
-    @NotBlank(field_name='user_id', message='关联用户不能为空')
+    @NotBlank(field_name='user_id', message='不能为空')
     def get_user_id(self):
         return self.user_id
+
 
     def validate_fields(self):
         self.get_user_id()
@@ -28,11 +30,11 @@ class NewsModel(NewsBaseModel):
     """
     新闻信息表对应pydantic模型
     """
-    newsimg_list: Optional[List['News_imgModel']] = Field(default=None, description='子表列信息')
+    newsimg_list: Optional[List['ImgModel']] = Field(default=None, description='子表列信息')
 
 
 
-class News_imgModel(BaseModel):
+class ImgModel(BaseModel):
     """
     新闻图片表对应pydantic模型
     """
@@ -43,19 +45,13 @@ class News_imgModel(BaseModel):
     img_title: Optional[str] = Field(default=None, description='图片标题')
     img_dis: Optional[str] = Field(default=None, description='图片描述')
     img_url: Optional[str] = Field(default=None, description='图片路径')
-    news_id: Optional[int] = Field(default=None, description='所属新闻')
 
     @NotBlank(field_name='img_url', message='图片路径不能为空')
     def get_img_url(self):
         return self.img_url
 
-    @NotBlank(field_name='news_id', message='所属新闻不能为空')
-    def get_news_id(self):
-        return self.news_id
-
     def validate_fields(self):
         self.get_img_url()
-        self.get_news_id()
 
 
 class NewsQueryModel(NewsBaseModel):
