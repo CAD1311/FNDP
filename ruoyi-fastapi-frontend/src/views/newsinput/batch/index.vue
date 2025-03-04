@@ -2,17 +2,17 @@
 import { ref, computed } from 'vue';
 
 defineOptions({
-  name: 'Uploader'
+  name: 'DirectoryUploader'
 });
 
 interface UploadResponse {
-  filename: string;
+  message: string;
   detail?: string;
 }
 
 const isHover = ref(false);
-const fileName = ref<string | null>(null);
-const wordFile = ref<File | null>(null);
+const directoryName = ref<string | null>(null);
+const directoryFiles = ref<File[]>([]);
 const uploadStatus = ref<string>('');
 
 const statusClass = computed(() => ({
@@ -20,35 +20,40 @@ const statusClass = computed(() => ({
   error: uploadStatus.value.includes('失败') || uploadStatus.value.includes('错误'),
 }));
 
-const handleFileUpload = (event: Event) => {
+const handleDirectoryUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (file) {
-    fileName.value = file.name;
-    wordFile.value = file;
-    uploadStatus.value = '';
+  const files = target.files;
+  
+  if (files && files.length > 0) {
+    directoryName.value = files[0].webkitRelativePath.split('/')[0];
+    directoryFiles.value = Array.from(files);
+    uploadStatus.value = `已选择目录：${directoryName.value}（包含 ${files.length} 个文件）`;
   }
 };
 
-const submitWordDocument = async () => {
-  if (!wordFile.value) {
-    uploadStatus.value = '请先选择文件';
+const submitDirectory = async () => {
+  if (!directoryFiles.value.length) {
+    uploadStatus.value = '请先选择目录';
     return;
   }
 
   const formData = new FormData();
-  formData.append('file', wordFile.value);
+  directoryFiles.value.forEach((file, index) => {
+    formData.append(`files_${index}`, file);
+  });
+  formData.append('directory', directoryName.value || '');
 
   try {
     uploadStatus.value = '上传中...';
-    const response = await fetch('http://192.168.95.226:8000/news/single', {
+    const response = await fetch('http://192.168.95.226:8000/news/directory', {
       method: 'POST',
       body: formData,
     });
 
     const result: UploadResponse = await response.json();
     if (response.ok) {
-      uploadStatus.value = `上传成功！文件名：${result.filename}`;
+      uploadStatus.value = `上传成功！${result.message}`;
+      directoryFiles.value = [];
     } else {
       uploadStatus.value = `上传失败：${result.detail}`;
     }
@@ -60,8 +65,7 @@ const submitWordDocument = async () => {
 
 <template>
   <div class="upload-container">
-    <h1 class="uploadTitle">选择单个文件进行上传</h1>
-    <!-- 自定义上传区域 -->
+    <h1 class="uploadTitle">选择目录进行上传</h1>
     <div
       class="custom-upload"
       :class="{ 'hover-effect': isHover }"
@@ -70,27 +74,25 @@ const submitWordDocument = async () => {
     >
       <input
         type="file"
-        id="fileInput"
+        id="directoryInput"
         class="native-input"
-        @change="handleFileUpload"
-        accept=".doc,.docx,.txt"
+        @change="handleDirectoryUpload"
+        webkitdirectory
+        multiple
       />
-      <label for="fileInput" class="upload-label">
+      <label for="directoryInput" class="upload-label">
         <div class="upload-content">
           <svg class="upload-icon" viewBox="0 0 24 24">
-            <path
-              d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
-            />
-            <path d="M8 15.01l.55 2h6.89l.56-2H8zm1.62-5l-.6-2h5.76l-.6 2h-4.56z" />
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+            <path d="M20 8h-8l-2-2H4v12h16V8zm-2 6h-2v2h2v2h-4v-4h2v-2h-2v-2h4z"/>
           </svg>
-          <span class="prompt-text">{{ fileName || '选择新闻文件' }}</span>
+          <span class="prompt-text">{{ directoryName || '选择新闻目录' }}</span>
         </div>
       </label>
     </div>
     <br />
-    <button @click="submitWordDocument" class="uploadButton">上传</button>
+    <button @click="submitDirectory" class="uploadButton">上传目录</button>
 
-    <!-- 状态反馈 -->
     <transition name="fade">
       <div v-if="uploadStatus" class="status-feedback" :class="statusClass">
         {{ uploadStatus }}
@@ -100,8 +102,9 @@ const submitWordDocument = async () => {
 </template>
 
 <style scoped>
+/* 在原有样式基础上调整图标和提示文字 */
 .upload-container {
-  width: 100%;
+  width: 80%;
   margin: 0 auto; 
   display: flex;
   flex-direction: column;
@@ -109,6 +112,7 @@ const submitWordDocument = async () => {
   border: 2px solid #282845;
   border-radius: 8px;
   padding: 20px;
+  background-color: #fff;
   box-shadow: 10px 10px 10px rgba(212, 104, 21, 0.1);
   border-width: 3px;    /*边框宽度*/
 }
@@ -117,6 +121,7 @@ const submitWordDocument = async () => {
   border: 2px dashed #e28c46;
   padding: 2rem;
   transition: all 0.3s ease;
+  background-color: #f8f9fa;
 }
 
 .hover-effect {
@@ -204,6 +209,8 @@ const submitWordDocument = async () => {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+  height: 48px;
+  fill: #e28c46;
 }
 
 .uploadTitle {
@@ -212,5 +219,19 @@ const submitWordDocument = async () => {
   font-weight: bold;
   margin-bottom: 1rem;
   color: #e28c46;
+}
+
+
+
+
+.prompt-text {
+  font-size: 1.1rem;
+  color: #e28c46;
+}
+
+/* 新增目录提示样式 */
+.status-feedback::before {
+  content: "📁";
+  margin-right: 8px;
 }
 </style>

@@ -22,9 +22,8 @@ from module_admin.controller.post_controler import postController
 from module_admin.controller.role_controller import roleController
 from module_admin.controller.server_controller import serverController
 from module_admin.controller.user_controller import userController
-from module_admin.controller.news_controller import newsController
-#from module_generator.controller.detection import detectionController
 from module_generator.controller.gen_controller import genController
+from module_news.controller.news_info_controller import news_infoController
 from sub_applications.handle import handle_sub_applications
 from utils.common_util import worship
 from utils.log_util import logger
@@ -81,8 +80,7 @@ controller_list = [
     {'router': cacheController, 'tags': ['系统监控-缓存监控']},
     {'router': commonController, 'tags': ['通用模块']},
     {'router': genController, 'tags': ['代码生成']},
-    {'router': newsController, 'tags': ['新闻模块']},
-    #{'router': detectionController, 'tags': ['新闻检测模块']},
+    {'router': news_infoController, 'tags': ['新闻模块']},
 ]
 
 for controller in controller_list:
