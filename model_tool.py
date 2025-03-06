@@ -20,7 +20,7 @@ class Qwen():
         self.processor.tokenizer = AutoTokenizer.from_pretrained(
             "qwen",
             use_fast=True,  # 使用快速tokenizer
-            model_max_length=2048,  # 指定最大长度以优化内存使用
+            model_max_length=4096,  # 指定最大长度以优化内存使用
         )
 
         self.generation_config = {
@@ -34,18 +34,18 @@ class Qwen():
             "eos_token_id": self.processor.tokenizer.eos_token_id,
         }
 
-    def predict(self,text,path_to_image):
+    def predict(self,text,path_to_image=None):
 
         if path_to_image:
             messages = [
                 {
-                    "role": "system",
-                    "content": [
-                        {"type": "text", "text": """你是一个判别模型是否是谣言的助手，请你以json格式输出你的结果，格式：
-                        IsNewsTrue：0      (0即为谣言，1即为事实)
-                        reasons：       (传入一个list，里面是你的分析原因，分点)         
-                        """},
-                    ],
+                  "role": "system",
+                  "content": [
+                      {
+                          "type": "text", 
+                          "text": "你是一个专业的谣言分析助手，擅长运用批判性思维和专业知识评估信息真实性。分析后，请以JSON格式输出结果：\n\n{\n  \"IsNewsTrue\": 0或1,  // 0表示谣言，1表示可信事实\n  \"reasons\": [  // 列出你分析的具体理由，请至少提供3-5点关键理由\n    \"理由1\",\n    \"理由2\",\n    \"...\"\n  ],\n  \"recommendation\": \"用户行动建议\"  // 针对此信息，给用户的建议\n}\n\n分析时请考虑以下关键因素：\n- 信息来源的可靠性和权威性\n- 逻辑一致性和证据支持\n- 是否有相互矛盾之处\n- 符合已知科学规律和常识的程度\n- 是否包含情绪化语言或煽动性内容\n- 是否有官方辟谣或权威机构确认"
+                      }
+                  ]
                 },
                 {
                     "role": "user",
@@ -54,7 +54,7 @@ class Qwen():
                             "type": "image",
                             "image": path_to_image,
                         },
-                        {"type": "text", "text": text
+                        {"type": "text", "text": text+"<image>"
                         },
                     ],
                 }
@@ -85,7 +85,7 @@ class Qwen():
         image_inputs, video_inputs = process_vision_info(messages)
 
         inputs = self.processor(
-            text=[text],
+            text=[text_with_messages],
             images=image_inputs,
             videos=video_inputs,
             padding=True,
@@ -93,8 +93,16 @@ class Qwen():
         )
         inputs = inputs.to("cuda")
 
+        start_time=time.perf_counter()
+
         with torch.cuda.amp.autocast():  
             generated_ids = self.model.generate(**inputs, **self.generation_config)
+
+        end_time=time.perf_counter()
+
+        print(end_time-start_time)
+
+
 
         generated_ids_trimmed = [
             out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -104,3 +112,4 @@ class Qwen():
             generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
         )
 
+        return output_text
