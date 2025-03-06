@@ -4,7 +4,10 @@ from baidusearch.baidusearch import search
 
 
 
-
+def My_search(
+    keyword: str ,
+             ):
+    return search(keyword=keyword)
 
 
 def generation_text(
@@ -35,29 +38,119 @@ def IsRumours(
         print("谣言")
 
 
+def reasons(
+    reasons:list,
+    isNewsTrue:int
+)->None:
+    if isNewsTrue==0:
+        print("事实")
+    elif isNewsTrue==1:
+        print("尚未定论")
+    elif isNewsTrue==2:
+        print("谣言")
+    for a in reasons:
+        print(a)
 
-def try_parse_tool_calls(content: str):
-    """Try parse the tool calls."""
-    tool_calls = []
-    offset = 0
-    for i, m in enumerate(re.finditer(r"<tool_call>\n(.+)?\n</tool_call>", content)):
-        if i == 0:
-            offset = m.start()
+
+
+def try_parse_tool_calls(text):
+    """尝试解析工具调用，返回解析后的消息"""
+    print(f"尝试解析文本: {text}")
+    
+    # 先尝试直接从<tool_call>标签解析
+    pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
+    match = re.search(pattern, text, re.DOTALL)
+    
+    if match:
         try:
-            func = json.loads(m.group(1))
-            tool_calls.append({"type": "function", "function": func})
-            if isinstance(func["arguments"], str):
-                func["arguments"] = json.loads(func["arguments"])
-        except json.JSONDecodeError as e:
-            print(f"Failed to parse tool calls: the content is {m.group(1)} and {e}")
-            pass
-    if tool_calls:
-        if offset > 0 and content[:offset].strip():
-            c = content[:offset]
-        else: 
-            c = ""
-        return {"role": "assistant", "content": c, "tool_calls": tool_calls}
-    return {"role": "assistant", "content": re.sub(r"<\|im_end\|>$", "", content)}
+            tool_content = match.group(1).strip()
+            print(f"找到tool_call内容: {tool_content}")
+            tool_json = json.loads(tool_content)
+            return {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": f"call_{tool_json['name']}",
+                        "type": "function",
+                        "function": {
+                            "name": tool_json["name"],
+                            "arguments": json.dumps(tool_json["arguments"])
+                        }
+                    }
+                ]
+            }
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"解析<tool_call>标签内容失败: {e}")
+    else:
+        print("未找到<tool_call>标签")
+    
+    # 如果上面失败，尝试从markdown代码块解析
+    json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', text, re.DOTALL)
+    if json_match:
+        try:
+            json_content = json_match.group(1).strip()
+            print(f"找到markdown代码块JSON内容: {json_content}")
+            json_obj = json.loads(json_content)
+            
+            # 判断是IsRumours还是search
+            if "isNewsTrue" in json_obj:
+                tool_name = "IsRumours"
+                tool_args = {"isNewsTrue": json_obj["isNewsTrue"]}
+            elif "keyword" in json_obj and "num" in json_obj:
+                tool_name = "search"
+                tool_args = {"keyword": json_obj["keyword"], "num": json_obj["num"]}
+            else:
+                print(f"无法确定工具类型，JSON内容: {json_content}")
+                return {"role": "assistant", "content": text}
+                
+            return {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": f"call_{tool_name}",
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "arguments": json.dumps(tool_args)
+                        }
+                    }
+                ]
+            }
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"解析markdown代码块内容失败: {e}")
+    else:
+        print("未找到markdown代码块")
+    
+    # 最后，尝试将整个文本直接解析为JSON
+    try:
+        print("尝试直接将文本解析为JSON")
+        json_obj = json.loads(text)
+        print(f"成功解析为JSON: {json_obj}")
+        
+        # 检查JSON是否包含工具调用所需的字段
+        if "name" in json_obj and "arguments" in json_obj:
+            return {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": f"call_{json_obj['name']}",
+                        "type": "function",
+                        "function": {
+                            "name": json_obj["name"],
+                            "arguments": json.dumps(json_obj["arguments"])
+                        }
+                    }
+                ]
+            }
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"直接解析JSON失败: {e}")
+    
+    # 如果所有尝试都失败，返回普通消息
+    print("所有解析尝试失败，返回原始文本作为内容")
+    return {"role": "assistant", "content": text}
 
 
 def function_calling(messages):
@@ -88,6 +181,7 @@ def function_calling(messages):
 
 function_map = {
     "IsRumours": IsRumours,
-    "search": search
+    "search": My_search,
+    "reasons":reasons
 
 }
