@@ -41,10 +41,7 @@ class News_infoService:
         :return: 新增新闻信息校验结果
         """
         try:
-            add_news_info = await News_infoDao.add_news_info_dao(query_db, page_object)
-            if add_news_info:
-                for sub_table in page_object.newsimg_list:
-                    await News_infoDao.add_img_dao(query_db, sub_table)
+            await News_infoDao.add_news_info_dao(query_db, page_object)
             await query_db.commit()
             return CrudResponseModel(is_success=True, message='新增成功')
         except Exception as e:
@@ -60,15 +57,11 @@ class News_infoService:
         :param page_object: 编辑新闻信息对象
         :return: 编辑新闻信息校验结果
         """
-        edit_news_info = page_object.model_dump(exclude_unset=True, exclude={'newsimg_list', })
+        edit_news_info = page_object.model_dump(exclude_unset=True, exclude={'create_by', 'create_time', })
         news_info_info = await cls.news_info_detail_services(query_db, page_object.news_id)
         if news_info_info.news_id:
             try:
                 await News_infoDao.edit_news_info_dao(query_db, edit_news_info)
-                for sub_table in news_info_info.newsimg_list:
-                    await News_infoDao.delete_img_dao(query_db, sub_table)
-                for sub_table in page_object.newsimg_list:
-                    await News_infoDao.add_img_dao(query_db, sub_table)
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='更新成功')
             except Exception as e:
@@ -90,9 +83,6 @@ class News_infoService:
             news_id_list = page_object.news_ids.split(',')
             try:
                 for news_id in news_id_list:
-                    news_info = await cls.news_info_detail_services(query_db, int(news_id))
-                    for sub_table in news_info.newsimg_list:
-                        await News_infoDao.delete_img_dao(query_db, sub_table)
                     await News_infoDao.delete_news_info_dao(query_db, News_infoModel(newsId=news_id))
                 await query_db.commit()
                 return CrudResponseModel(is_success=True, message='删除成功')
@@ -100,7 +90,7 @@ class News_infoService:
                 await query_db.rollback()
                 raise e
         else:
-            raise ServiceException(message='传入为空')
+            raise ServiceException(message='传入新闻编号为空')
 
     @classmethod
     async def news_info_detail_services(cls, query_db: AsyncSession, news_id: int):
@@ -108,8 +98,8 @@ class News_infoService:
         获取新闻信息详细信息service
 
         :param query_db: orm对象
-        :param news_id: 
-        :return: 对应的信息
+        :param news_id: 新闻编号
+        :return: 新闻编号对应的信息
         """
         news_info = await News_infoDao.get_news_info_detail_by_id(query_db, news_id=news_id)
         if news_info:
@@ -129,10 +119,18 @@ class News_infoService:
         """
         # 创建一个映射字典，将英文键映射到中文键
         mapping_dict = {
-            'newsId': '',
+            'newsId': '新闻编号',
             'newsContent': '新闻内容',
-            'userId': '',
-            'imgId': '',
+            'userId': '用户编号',
+            'newsTitle': '新闻标题',
+            'updateBy': '更新者',
+            'updateTime': '更新时间',
+            'createBy': '创建者',
+            'createTime': '创建时间',
+            'publishTime': '发布时间',
+            'platform': '平台',
+            'hashTag': '类别',
+            'url': '链接',
         }
         binary_data = ExcelUtil.export_list2excel(news_info_list, mapping_dict)
 
