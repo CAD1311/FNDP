@@ -185,3 +185,18 @@ function_map = {
     "reasons":reasons
 
 }
+
+
+
+
+def To_Json(
+    output:list
+):
+    json_str = output[0]
+    json_str = json_str.replace('```json', '').replace('```', '').strip()
+
+    json_obj = json.loads(json_str)
+
+    with open('result.json', 'w', encoding='utf-8') as f:
+        f.write(json_str)
+    return json_obj
