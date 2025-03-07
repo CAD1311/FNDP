@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, Form, Request
 from pydantic_validation_decorator import ValidateFields
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,6 @@ from utils.common_util import bytes2file_response
 from utils.log_util import logger
 from utils.page_util import PageResponseModel
 from utils.response_util import ResponseUtil
-import datetime
 
 
 news_infoController = APIRouter(prefix='/news/news_info', dependencies=[Depends(LoginService.get_current_user)])
@@ -43,6 +43,10 @@ async def add_news_news_info(
     query_db: AsyncSession = Depends(get_db),
     current_user: CurrentUserModel = Depends(LoginService.get_current_user),
 ):
+    add_news_info.update_by = current_user.user.user_name
+    add_news_info.update_time = datetime.now()
+    add_news_info.create_by = current_user.user.user_name
+    add_news_info.create_time = datetime.now()
     add_news_info_result = await News_infoService.add_news_info_services(query_db, add_news_info)
     logger.info(add_news_info_result.message)
 

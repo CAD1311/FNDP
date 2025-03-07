@@ -1,5 +1,4 @@
-from sqlalchemy import ForeignKey, Column, String, Text, BigInteger
-from sqlalchemy.orm import relationship
+from sqlalchemy import BigInteger, Text, Column, DateTime, String
 from config.database import Base
 
 
@@ -10,24 +9,18 @@ class NewsInfo(Base):
 
     __tablename__ = 'news_info'
 
-    news_id = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False, comment='')
+    news_id = Column(BigInteger, primary_key=True, autoincrement=True, nullable=False, comment='新闻编号')
     news_content = Column(Text, nullable=True, comment='新闻内容')
-    user_id = Column(BigInteger, nullable=False, comment='')
-    img_id = Column(BigInteger, nullable=True, comment='')
+    user_id = Column(BigInteger, nullable=False, comment='用户编号')
+    news_title = Column(Text, nullable=True, comment='新闻标题')
+    update_by = Column(String(100), nullable=True, comment='更新者')
+    update_time = Column(DateTime, nullable=True, comment='更新时间')
+    create_by = Column(String(100), nullable=True, comment='创建者')
+    create_time = Column(DateTime, nullable=True, comment='创建时间')
+    publish_time = Column(DateTime, nullable=True, comment='发布时间')
+    platform = Column(String(100), nullable=True, comment='平台')
+    hash_tag = Column(String(100), nullable=True, comment='类别')
+    url = Column(String(100), nullable=True, comment='链接')
 
-    newsimg_list = relationship('NewsImg', back_populates='news_info')
 
 
-class NewsImg(Base):
-    """
-    新闻图片表
-    """
-
-    __tablename__ = 'news_img'
-
-    img_id = Column(BigInteger, ForeignKey('news_info.img_id'), primary_key=True, autoincrement=True, nullable=False, comment='')
-    img_title = Column(String(100), nullable=False, comment='图片标题')
-    img_dis = Column(Text, nullable=False, comment='图片描述')
-    img_url = Column(String(100), nullable=True, comment='图片路径')
-
-    news_info = relationship('NewsInfo', back_populates='newsimg_list')

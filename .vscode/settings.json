@@ -26,6 +26,20 @@
             "database": "test",
             "username": "root",
             "password": ""
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "192.168.43.226",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "networkDatabase",
+            "database": "test",
+            "username": "root",
+            "password": ""
         }
     ]
 }
