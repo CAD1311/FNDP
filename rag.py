@@ -6,9 +6,7 @@ from typing import List, Dict, Tuple, Optional
 import time
 
 
-class SimpleVectorStore:
-    """简单向量存储类，用于存储文档和对应的嵌入向量，支持GPU推理"""
-
+class VectorStore:
     def __init__(self, embedding_model: str = 'shibing624/text2vec-base-chinese', model_cache_dir: str = None,
                  device: Optional[str] = None):
         # 自动检测设备
@@ -184,25 +182,16 @@ class SimpleVectorStore:
         return instance
 
 
-class SimpleRAG:
+class RAG:
     """简单的检索增强生成 (RAG) 实现，支持GPU加速"""
 
-    def __init__(self, vector_store: SimpleVectorStore, prompt_template: str = None):
+    def __init__(self, vector_store: VectorStore, prompt_template: str = None):
         """
         Args:
             vector_store: 向量存储对象
             prompt_template: 用于生成的提示模板
         """
         self.vector_store = vector_store
-
-        # 默认提示模板
-        self.prompt_template = prompt_template or """
-        基于以下信息回答问题:
-        相关文档:
-        {context}
-        问题: {query}
-        回答:
-        """
 
     def generate(self, query: str, top_k: int = 3) -> str:
         """根据查询生成回答
@@ -215,13 +204,14 @@ class SimpleRAG:
         # 检索相关文档
         relevant_docs = self.vector_store.search(query, top_k)
 
+        prompt="这是我所查到的文档:\n"
+
         # 组合检索到的文档
         context = "\n\n".join([f"文档 {i + 1} (相似度: {score:.4f}):\n{doc}"
                                for i, (doc, score) in enumerate(relevant_docs)])
-
+        context=prompt+context
         # 准备输入提示
-        prompt = self.prompt_template.format(context=context, query=query)
-        return prompt
+        return context
 
 
 def load_documents_from_folder(folder_path: str) -> List[str]:
@@ -232,61 +222,3 @@ def load_documents_from_folder(folder_path: str) -> List[str]:
             with open(os.path.join(folder_path, filename), 'r', encoding='utf-8') as f:
                 documents.append(f.read())
     return documents
-
-
-def main():
-    # 指定模型下载目录和向量存储保存目录
-    model_cache_dir = "./models"
-    save_dir = "./vector_store"
-
-    # 检查GPU是否可用
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"使用设备: {device}")
-
-    # 尝试加载现有向量存储，如果不存在则创建新的
-    if os.path.exists(save_dir) and os.path.isfile(os.path.join(save_dir, 'documents.json')):
-        print("加载现有向量存储...")
-        vector_store = SimpleVectorStore.load(
-            save_dir=save_dir,
-            embedding_model='shibing624/text2vec-base-chinese',
-            model_cache_dir=model_cache_dir,
-            device=device
-        )
-    else:
-        print("创建新的向量存储...")
-        vector_store = SimpleVectorStore(
-            embedding_model='shibing624/text2vec-base-chinese',
-            model_cache_dir=model_cache_dir,
-            device=device
-        )
-
-        # 加载示例文档
-        documents = load_documents_from_folder('output')
-        print(f"从文件夹加载了 {len(documents)} 个文档")
-
-        # 添加文档到向量存储
-        start_time = time.perf_counter()
-        vector_store.add_documents(documents)
-        print(f"文档嵌入耗时: {time.perf_counter() - start_time:.2f}秒")
-
-        # 保存向量存储
-        vector_store.save(save_dir)
-
-    # 初始化RAG系统
-    rag = SimpleRAG(vector_store)
-
-    # 测试查询
-    query = "马云"
-    start_time = time.perf_counter()
-    result = rag.generate(query)
-    print(f"查询时间: {time.perf_counter() - start_time:.4f}秒")
-
-    print(f"查询: {query}")
-    print("\n" + result)
-
-    # 清理资源
-    vector_store.clear()
-
-
-if __name__ == "__main__":
-    main()
