@@ -30,16 +30,12 @@ class SimpleVectorStore:
         print(f"模型已加载到 {self.device} 设备")
 
     def add_documents(self, documents: List[str]) -> None:
-        # 计算嵌入向量 (在GPU或CPU上进行)
         with torch.no_grad():
             embeddings = self.model.encode(documents, convert_to_tensor=True)
-            # 转换为NumPy以便后续处理
             embeddings_np = embeddings.cpu().numpy() if self.device == 'cuda' else embeddings.numpy()
 
-        # 存储文档
         self.documents.extend(documents)
 
-        # 更新嵌入向量存储
         if self.embeddings is None:
             self.embeddings = embeddings_np
         else:
@@ -88,6 +84,104 @@ class SimpleVectorStore:
         # 清理GPU缓存
         if self.device == 'cuda':
             torch.cuda.empty_cache()
+
+    def save(self, save_dir: str) -> None:
+        """保存向量存储到指定目录
+
+        Args:
+            save_dir: 保存目录
+        """
+        import os
+        import json
+
+        # 创建保存目录（如果不存在）
+        os.makedirs(save_dir, exist_ok=True)
+
+        # 保存文档到JSON文件
+        with open(os.path.join(save_dir, 'documents.json'), 'w', encoding='utf-8') as f:
+            json.dump(self.documents, f, ensure_ascii=False, indent=2)
+
+        # 保存嵌入向量到NumPy文件
+        if self.embeddings is not None:
+            np.save(os.path.join(save_dir, 'embeddings.npy'), self.embeddings)
+
+        print(f"向量存储已保存到 {save_dir}，包含 {len(self.documents)} 个文档")
+
+    @classmethod
+    def load(cls, save_dir: str, embedding_model: str = 'shibing624/text2vec-base-chinese',
+             model_cache_dir: str = None, device: Optional[str] = None) -> 'SimpleVectorStore':
+        """从指定目录加载向量存储
+
+        Args:
+            save_dir: 保存目录
+            embedding_model: 嵌入模型名称
+            model_cache_dir: 模型缓存目录
+            device: 设备类型，None表示自动检测
+
+        Returns:
+            加载的向量存储对象
+        """
+        import os
+        import json
+
+        # 创建新实例
+        instance = cls(embedding_model=embedding_model, model_cache_dir=model_cache_dir, device=device)
+
+        # 加载文档
+        documents_path = os.path.join(save_dir, 'documents.json')
+        if os.path.exists(documents_path):
+            with open(documents_path, 'r', encoding='utf-8') as f:
+                instance.documents = json.load(f)
+        else:
+            raise FileNotFoundError(f"无法找到文档文件: {documents_path}")
+
+        # 加载嵌入向量
+        embeddings_path = os.path.join(save_dir, 'embeddings.npy')
+        if os.path.exists(embeddings_path):
+            instance.embeddings = np.load(embeddings_path)
+        else:
+            raise FileNotFoundError(f"无法找到嵌入向量文件: {embeddings_path}")
+
+        print(f"向量存储已从 {save_dir} 加载，包含 {len(instance.documents)} 个文档")
+        return instance
+
+    @classmethod
+    def load(cls, save_dir: str, embedding_model: str = 'shibing624/text2vec-base-chinese',
+             model_cache_dir: str = None, device: Optional[str] = None) -> 'SimpleVectorStore':
+        """从指定目录加载向量存储
+
+        Args:
+            save_dir: 保存目录
+            embedding_model: 嵌入模型名称
+            model_cache_dir: 模型缓存目录
+            device: 设备类型，None表示自动检测
+
+        Returns:
+            加载的向量存储对象
+        """
+        import os
+        import json
+
+        # 创建新实例
+        instance = cls(embedding_model=embedding_model, model_cache_dir=model_cache_dir, device=device)
+
+        # 加载文档
+        documents_path = os.path.join(save_dir, 'documents.json')
+        if os.path.exists(documents_path):
+            with open(documents_path, 'r', encoding='utf-8') as f:
+                instance.documents = json.load(f)
+        else:
+            raise FileNotFoundError(f"无法找到文档文件: {documents_path}")
+
+        # 加载嵌入向量
+        embeddings_path = os.path.join(save_dir, 'embeddings.npy')
+        if os.path.exists(embeddings_path):
+            instance.embeddings = np.load(embeddings_path)
+        else:
+            raise FileNotFoundError(f"无法找到嵌入向量文件: {embeddings_path}")
+
+        print(f"向量存储已从 {save_dir} 加载，包含 {len(instance.documents)} 个文档")
+        return instance
 
 
 class SimpleRAG:
@@ -141,39 +235,54 @@ def load_documents_from_folder(folder_path: str) -> List[str]:
 
 
 def main():
-    # 指定模型下载目录
+    # 指定模型下载目录和向量存储保存目录
     model_cache_dir = "./models"
+    save_dir = "./vector_store"
 
     # 检查GPU是否可用
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"使用设备: {device}")
 
-    vector_store = SimpleVectorStore(
-        embedding_model='shibing624/text2vec-base-chinese',
-        model_cache_dir=model_cache_dir,
-        device=device
-    )
+    # 尝试加载现有向量存储，如果不存在则创建新的
+    if os.path.exists(save_dir) and os.path.isfile(os.path.join(save_dir, 'documents.json')):
+        print("加载现有向量存储...")
+        vector_store = SimpleVectorStore.load(
+            save_dir=save_dir,
+            embedding_model='shibing624/text2vec-base-chinese',
+            model_cache_dir=model_cache_dir,
+            device=device
+        )
+    else:
+        print("创建新的向量存储...")
+        vector_store = SimpleVectorStore(
+            embedding_model='shibing624/text2vec-base-chinese',
+            model_cache_dir=model_cache_dir,
+            device=device
+        )
 
-    # 示例文档
-    documents = load_documents_from_folder('output')
+        # 加载示例文档
+        documents = load_documents_from_folder('output')
+        print(f"从文件夹加载了 {len(documents)} 个文档")
 
-    # 添加文档到向量存储
-    vector_store.add_documents(documents)
+        # 添加文档到向量存储
+        start_time = time.perf_counter()
+        vector_store.add_documents(documents)
+        print(f"文档嵌入耗时: {time.perf_counter() - start_time:.2f}秒")
 
+        # 保存向量存储
+        vector_store.save(save_dir)
 
     # 初始化RAG系统
     rag = SimpleRAG(vector_store)
 
-    start = time.perf_counter()
-
     # 测试查询
-    query = "这是一个在2020/9/17微博发布的新闻。"
+    query = "马云"
+    start_time = time.perf_counter()
     result = rag.generate(query)
-    print(time.perf_counter()-start)
+    print(f"查询时间: {time.perf_counter() - start_time:.4f}秒")
 
     print(f"查询: {query}")
     print("\n" + result)
-
 
     # 清理资源
     vector_store.clear()
