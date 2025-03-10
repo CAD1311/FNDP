@@ -42,3 +42,13 @@ export function delNews_info(newsId) {
     method: 'delete'
   })
 }
+
+
+// 检测新闻信息
+export function checkNews_info(newsIds) {
+  return request({
+    url: '/news/news_info/check',
+    method: 'post',
+    data: newsIds
+  });
+}
