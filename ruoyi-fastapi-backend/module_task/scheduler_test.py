@@ -21,6 +21,9 @@ async def async_job(*args, **kwargs):
     print(f'{datetime.now()}异步函数执行了')
 
 
+
+
+"""
 async def job_wrapper(func, platform_name):
     result = await func()
     return {platform_name: result}  # 添加平台标识键
@@ -42,4 +45,5 @@ async def jobs():
 
 def my_job():
     final_json = asyncio.run(jobs())
-    print(final_json)  # 输出合并后的完整JSON
+    print(final_json)  # 输出合并后的完整JSON"
+    """

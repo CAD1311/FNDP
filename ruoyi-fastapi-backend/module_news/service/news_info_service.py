@@ -135,3 +135,14 @@ class News_infoService:
         binary_data = ExcelUtil.export_list2excel(news_info_list, mapping_dict)
 
         return binary_data
+
+"""
+    @staticmethod
+    async def detect_news_info_list_services(news_info_list: List):
+        for news_info in news_info_list:
+            await detect_news(news_info.news_info)
+
+        return CrudResponseModel(is_success=True, message='开始检测')
+"""    
+    
+
