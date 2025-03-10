@@ -60,21 +60,32 @@
     <el-table v-loading="loading" :data="news_infoList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="新闻编号" align="center" prop="newsId" />
-      <el-table-column label="新闻内容" align="center" prop="newsContent" />
-      <el-table-column label="用户编号" align="center" prop="userId" />
       <el-table-column label="新闻标题" align="center" prop="newsTitle" />
-      <el-table-column label="发布时间" align="center" prop="publishTime" width="180">
+      <el-table-column label="新闻内容" align="center" prop="newsContent">
+        <template #default="scope">
+          <span>{{ scope.row.newsContent.slice(0, 50) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="发布时间" align="center" prop="publishTime">
         <template #default="scope">
           <span>{{ parseTime(scope.row.publishTime, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="平台" align="center" prop="platform" />
-      <el-table-column label="类别" align="center" prop="hashTag" />
-      <el-table-column label="链接" align="center" prop="url" />
+      <el-table-column label="链接" align="center" prop="url">
+        <template #default="scope">
+          <a :href="scope.row.url" target="_blank" style="color: blue; text-decoration: underline;">
+            {{ scope.row.url }}
+          </a>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="上传者" align="center" prop="createBy" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['news:news_info:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['news:news_info:remove']">删除</el-button>
+          <el-button link type="primary" icon="View" @click="handleDetail(scope.row)">详情</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -90,14 +101,11 @@
     <!-- 添加或修改新闻信息对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="news_infoRef" :model="form" :rules="rules" label-width="80px">
-      <el-form-item label="新闻内容" prop="newsContent">
-        <editor v-model="form.newsContent" :min-height="192"/>
-      </el-form-item>
-      <el-form-item label="用户编号" prop="userId">
-        <el-input v-model="form.userId" placeholder="请输入用户编号" />
-      </el-form-item>
       <el-form-item label="新闻标题" prop="newsTitle">
         <el-input v-model="form.newsTitle" type="textarea" placeholder="请输入内容" />
+      </el-form-item>
+      <el-form-item label="新闻内容" prop="newsContent">
+        <editor v-model="form.newsContent" :min-height="192"/>
       </el-form-item>
       <el-form-item label="发布时间" prop="publishTime">
         <el-date-picker clearable
@@ -130,6 +138,9 @@
 
 <script setup name="News_info">
 import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info } from "@/api/news/news_info";
+import useUserStore from '@/store/modules/user'
+import { useRouter } from 'vue-router';
+const userStore = useUserStore()
 
 const { proxy } = getCurrentInstance();
 
@@ -153,10 +164,14 @@ const data = reactive({
     newsTitle: null,
   },
   rules: {
-    userId: [
-      { required: true, message: "用户编号不能为空", trigger: "blur" }
-    ],
-  }
+  userId: [
+    { required: true, message: "用户编号不能为空", trigger: "blur" }
+  ],
+  url: [
+    { type: 'url', message: "链接格式不正确", trigger: "blur" }
+  ],
+},
+
 });
 
 const { queryParams, form, rules } = toRefs(data);
@@ -235,6 +250,7 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
+  form.value.userId = userStore.id;
   proxy.$refs["news_infoRef"].validate(valid => {
     if (valid) {
       if (form.value.newsId != null) {
@@ -271,6 +287,16 @@ function handleExport() {
   proxy.download('news/news_info/export', {
     ...queryParams.value
   }, `news_info_${new Date().getTime()}.xlsx`);
+}
+
+
+const router = useRouter();
+function handleDetail(row) {
+  console.log(row.newsId);
+  router.push({
+    path: 'data_index',
+    query: {newsId: row.newsId}
+  });
 }
 
 getList();
