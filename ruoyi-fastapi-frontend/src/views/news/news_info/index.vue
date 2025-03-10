@@ -54,6 +54,17 @@
           v-hasPermi="['news:news_info:export']"
         >导出</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button
+          type="info"
+          plain
+          icon="Check"
+          :disabled="multiple"
+          @click="handleCheck"
+          v-hasPermi="['news:news_info:check']"
+        >检测</el-button>
+      </el-col>
+
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -137,7 +148,7 @@
 </template>
 
 <script setup name="News_info">
-import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info } from "@/api/news/news_info";
+import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info } from "@/api/news/news_info";
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 const userStore = useUserStore()
@@ -288,6 +299,21 @@ function handleExport() {
     ...queryParams.value
   }, `news_info_${new Date().getTime()}.xlsx`);
 }
+
+/** 检测按钮操作 */
+function handleCheck(row) {
+  console.log(row.newsId,"\n",ids.value);
+  const _newsIds = row.newsId || ids.value;
+  // 调用检测 API，这里假设有一个叫 checkNews_info 的 API
+  proxy.$modal.confirm('是否检测新闻信息编号为"' + _newsIds + '"的数据项？').then(function() {
+    return checkNews_info(_newsIds);
+  }).then(() => {
+    getList();
+    proxy.$modal.msgSuccess("正在检测");
+  }).catch(() => {});
+
+}
+
 
 
 const router = useRouter();
