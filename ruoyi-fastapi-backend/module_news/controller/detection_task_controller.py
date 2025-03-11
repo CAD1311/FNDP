@@ -15,6 +15,7 @@ from utils.common_util import bytes2file_response
 from utils.log_util import logger
 from utils.page_util import PageResponseModel
 from utils.response_util import ResponseUtil
+from pydantic import BaseModel
 
 
 detection_taskController = APIRouter(prefix='/detection/detection_task', dependencies=[Depends(LoginService.get_current_user)])
@@ -34,21 +35,29 @@ detection_task_page_query: Detection_taskPageQueryModel = Depends(Detection_task
 
     return ResponseUtil.success(model_content=detection_task_page_query_result)
 
+
+
+class NewsDetectionRequest(BaseModel):
+    news_ids: list[int]
+
+
 @detection_taskController.post('', dependencies=[Depends(CheckUserInterfaceAuth('detection:detection_task:add'))])
 @Log(title='新闻检测', business_type=BusinessType.OTHER)
 async def detect_news_news_info(
+    params: NewsDetectionRequest,
     request: Request,
-    news_ids: list,
     query_db: AsyncSession = Depends(get_db),   
     current_user: CurrentUserModel = Depends(LoginService.get_current_user),
 ):
+    news_ids = params.news_ids
     if news_ids:
         for news_id in news_ids:
-            #根据id查找新闻信息
             news_info = await News_infoService.news_info_detail_services(query_db, news_id)
             if news_info:
-                #model_detect(news_info)
-                add_detection_task: Detection_taskModel
+                # 每次循环创建一个新的 Detection_taskModel 实例
+                add_detection_task = Detection_taskModel()  # 关键修复：初始化实例
+                
+                # 设置属性
                 add_detection_task.update_by = current_user.user.user_name
                 add_detection_task.update_time = datetime.now()
                 add_detection_task.create_by = current_user.user.user_name
@@ -56,6 +65,8 @@ async def detect_news_news_info(
                 add_detection_task.task_status = 0
                 add_detection_task.user_id = current_user.user.user_id
                 add_detection_task.news_id = news_id
+                
+                # 调用服务保存到数据库
                 add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
                 logger.info(add_detection_task_result.message)
 
