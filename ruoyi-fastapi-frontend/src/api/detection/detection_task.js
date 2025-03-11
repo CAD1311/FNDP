@@ -22,8 +22,10 @@ export function addDetection_task(data) {
   return request({
     url: '/detection/detection_task',
     method: 'post',
-    data: data
-  })
+    data: {
+      news_ids: newsIds
+    }
+  });
 }
 
 // 修改新闻检测

@@ -27,6 +27,15 @@
       </el-col>
       <el-col :span="1.5">
         <el-button
+          type="primary"
+          plain
+          icon="Plus"
+          @click="handleAddBatch"
+          v-hasPermi="['news:news_info:add']"
+        >批量上传</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button
           type="success"
           plain
           icon="Edit"
@@ -91,6 +100,21 @@
         </template>
       </el-table-column>
 
+      <el-table-column label="状态" align="center" prop="newsStatus">
+        <template #default="scope">
+          <!--
+          <span :style="{ color: getStatusColor(scope.row.newsStatus) }">
+            {{ scope.row.newsStatus }}
+          </span>
+          -->
+
+          <span :style="{ color: getStatusColor('谣言') }" >
+            谣言
+          </span>
+        </template>
+      </el-table-column>
+
+
       <el-table-column label="上传者" align="center" prop="createBy" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
@@ -108,6 +132,12 @@
       v-model:limit="queryParams.pageSize"
       @pagination="getList"
     />
+
+
+    <el-dialog title="批量上传新闻" v-model="batchUploadOpen" width="800px" append-to-body>
+      <Uploader @success="handleUploadSuccess" />
+    </el-dialog>
+
 
     <!-- 添加或修改新闻信息对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -148,15 +178,19 @@
 </template>
 
 <script setup name="News_info">
-import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info } from "@/api/news/news_info";
+import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info} from "@/api/news/news_info";
+import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
+import { toRaw } from 'vue'
+import Uploader from '@/components/uploader.vue'
 const userStore = useUserStore()
 
 const { proxy } = getCurrentInstance();
 
 const news_infoList = ref([]);
 const open = ref(false);
+const batchUploadOpen = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
@@ -175,15 +209,16 @@ const data = reactive({
     newsTitle: null,
   },
   rules: {
-  userId: [
-    { required: true, message: "用户编号不能为空", trigger: "blur" }
-  ],
-  url: [
-    { type: 'url', message: "链接格式不正确", trigger: "blur" }
-  ],
-},
-
+    userId: [
+      { required: true, message: "用户编号不能为空", trigger: "blur" }
+    ],
+    url: [
+      { type: 'url', message: "链接格式不正确", trigger: "blur" }
+    ],
+  },
+  newsStatusList: {},  // 新增：用于存储新闻的状态信息
 });
+
 
 const { queryParams, form, rules } = toRefs(data);
 
@@ -194,8 +229,24 @@ function getList() {
     news_infoList.value = response.rows;
     total.value = response.total;
     loading.value = false;
+
+    getStatusList();
+
   });
 }
+
+
+
+// 新增：获取状态信息
+function getStatusList() {
+  //listNews_status().then(response => {
+  //  newsStatusList.value = response.data.reduce((acc, item) => {
+  //    acc[item.newsId] = item.newsStatus;
+  //    return acc;
+  //  }, {});
+  //});
+}
+
 
 /** 取消按钮 */
 function cancel() {
@@ -246,6 +297,17 @@ function handleAdd() {
   reset();
   open.value = true;
   title.value = "添加新闻信息";
+}
+
+function handleAddBatch(){
+  console.log("弹窗批量上传");
+  batchUploadOpen.value = true;
+}
+
+
+function handleUploadSuccess() {
+  batchUploadOpen.value = false;
+  getList(); // 刷新列表
 }
 
 /** 修改按钮操作 */
@@ -302,17 +364,35 @@ function handleExport() {
 
 /** 检测按钮操作 */
 function handleCheck(row) {
-  console.log(row.newsId,"\n",ids.value);
-  const _newsIds = row.newsId || ids.value;
+  let _newsIds = row.newsId || ids.value;
+  _newsIds = toRaw(_newsIds);
   // 调用检测 API，这里假设有一个叫 checkNews_info 的 API
   proxy.$modal.confirm('是否检测新闻信息编号为"' + _newsIds + '"的数据项？').then(function() {
-    return checkNews_info(_newsIds);
+    console.log(typeof _newsIds,_newsIds);
+    addDetection_task(_newsIds).then(response => {
+        console.log(response);
+    });
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("正在检测");
   }).catch(() => {});
 
 }
+
+
+function getStatusColor(status) {
+  switch (status) {
+    case '谣言':
+      return 'red';
+    case '尚无定论':
+      return 'gray';
+    case '事实':
+      return 'green';
+    default:
+      return 'black'; // 默认颜色或其他颜色
+  }
+}
+
 
 
 
