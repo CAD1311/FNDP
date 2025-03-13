@@ -46,7 +46,7 @@ const props = defineProps({
   // 数量限制
   limit: {
     type: Number,
-    default: 5,
+    default: 100,
   },
   // 大小限制(MB)
   fileSize: {
@@ -56,7 +56,7 @@ const props = defineProps({
   // 文件类型, 例如['png', 'jpg', 'jpeg']
   fileType: {
     type: Array,
-    default: () => ["doc", "xls", "ppt", "txt", "pdf"],
+    default: () => ["doc", "xls", "ppt", "txt", "pdf","docx","txt","xlsx","csv"],
   },
   // 是否显示提示
   isShowTip: {

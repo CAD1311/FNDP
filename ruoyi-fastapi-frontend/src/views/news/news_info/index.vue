@@ -135,7 +135,7 @@
 
 
     <el-dialog title="批量上传新闻" v-model="batchUploadOpen" width="800px" append-to-body>
-      <Uploader @success="handleUploadSuccess" />
+      <UploadFile @success="handleUploadSuccess" />
     </el-dialog>
 
 
@@ -183,7 +183,8 @@ import {listDetection_task,getDetection_task,addDetection_task,updateDetection_t
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue'
-import Uploader from '@/components/uploader.vue'
+import UploadFile from '@/components/FileUpload/index.vue'
+
 const userStore = useUserStore()
 
 const { proxy } = getCurrentInstance();
