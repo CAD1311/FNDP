@@ -179,9 +179,8 @@
 </template>
 
 <script setup name="News_info">
-import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,refuteNews_info} from "@/api/news/news_info";
-import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
-import useUserStore from '@/store/modules/user'
+import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info,refuteNews_info} from "@/api/news/news_info";
+import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue'
 import UploadFile from '@/components/FileUpload/index.vue'
@@ -368,10 +367,9 @@ function handleExport() {
 function handleCheck(row) {
   let _newsIds = row.newsId || ids.value;
   _newsIds = toRaw(_newsIds);
-  // 调用检测 API，这里假设有一个叫 checkNews_info 的 API
   proxy.$modal.confirm('是否检测新闻信息编号为"' + _newsIds + '"的数据项？').then(function() {
-    console.log(typeof _newsIds,_newsIds);
-    addDetection_task(_newsIds).then(response => {
+    console.log("准备检测");
+    checkNews_info(_newsIds).then(response => {
         console.log(response);
     });
   }).then(() => {
