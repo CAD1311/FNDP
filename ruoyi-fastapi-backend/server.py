@@ -25,6 +25,7 @@ from module_admin.controller.user_controller import userController
 from module_generator.controller.gen_controller import genController
 from module_news.controller.news_info_controller import news_infoController
 from module_news.controller.detection_task_controller import detection_taskController
+from module_news.controller.refutation_controller import news_refuteController
 from sub_applications.handle import handle_sub_applications
 from utils.common_util import worship
 from utils.log_util import logger
@@ -83,6 +84,7 @@ controller_list = [
     {'router': genController, 'tags': ['代码生成']},
     {'router': news_infoController, 'tags': ['新闻模块']},
     {'router': detection_taskController, 'tags': ['新闻模块-新闻检测任务']},
+    {'router': news_refuteController, 'tags': ['新闻模块-新闻辟谣']}
 ]
 
 for controller in controller_list:

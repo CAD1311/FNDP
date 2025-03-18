@@ -121,6 +121,7 @@
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['news:news_info:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['news:news_info:remove']">删除</el-button>
           <el-button link type="primary" icon="View" @click="handleDetail(scope.row)">详情</el-button>
+          <el-button link type="primary" icon="" @click="handleRefute(scope.row)">举报</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -178,7 +179,7 @@
 </template>
 
 <script setup name="News_info">
-import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info} from "@/api/news/news_info";
+import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,refuteNews_info} from "@/api/news/news_info";
 import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
@@ -392,6 +393,15 @@ function getStatusColor(status) {
     default:
       return 'black'; // 默认颜色或其他颜色
   }
+}
+
+function handleRefute(row){
+  let _newsIds = row.newsId || ids.value;
+  _newsIds = toRaw(_newsIds);
+  refuteNews_info(_newsIds).then(response => {
+    console.log(response);
+  });
+
 }
 
 

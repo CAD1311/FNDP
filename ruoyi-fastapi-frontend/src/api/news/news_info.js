@@ -54,3 +54,15 @@ export function checkNews_info(newsIds) {
     }
   });
 }
+
+//新闻辟谣
+export function refuteNews_info(newsIds) {
+  return request({
+    url: '/news/news_refutation',
+    method: 'post',
+    data: {
+      news_ids: newsIds
+    }
+  });
+}
+
