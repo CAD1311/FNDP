@@ -4,9 +4,11 @@ from config.constant import CommonConstant
 from exceptions.exception import ServiceException
 from module_admin.entity.vo.common_vo import CrudResponseModel
 from module_news.dao.detection_task_dao import Detection_taskDao
+from module_news.entity.vo.news_info_vo import News_infoModel
 from module_news.entity.vo.detection_task_vo import DeleteDetection_taskModel, Detection_taskModel, Detection_taskPageQueryModel
 from utils.common_util import CamelCaseUtil
 from utils.excel_util import ExcelUtil
+import asyncio
 
 
 class Detection_taskService:
@@ -110,3 +112,17 @@ class Detection_taskService:
         binary_data = ExcelUtil.export_list2excel(detection_task_list, mapping_dict)
 
         return binary_data
+
+    @staticmethod
+    async def detection_task_start_services(news_id:int, news_info:News_infoModel):
+        """
+        新闻检测开始service
+
+        :param news_info: 新闻信息
+        :return: 新闻检测开始校验结果
+        """
+        # 调用模型
+        
+
+        return True
+        

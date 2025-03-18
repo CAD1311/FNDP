@@ -68,6 +68,22 @@ async def detect_news_news_info(
                 
                 # 调用服务保存到数据库
                 add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+
+                #根据新闻id获取新闻详情，并进行检测
+                news_info_detail_result = await News_infoService.news_info_detail_services(query_db, news_id)
+                #调用检测服务
+                detection_result = await Detection_taskService.detection_task_start_services(news_id,news_info_detail_result)
+                #检测结果保存到数据库
+                if detection_result:
+                    # 保存检测结果到数据库
+                    add_detection_task.task_status = 1
+                    add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+                    logger.info(f'检测新闻{news_id}成功')
+                else:
+                    # 保存检测结果到数据库
+                    add_detection_task.task_status = 2
+                    add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+                    logger.info(f'检测新闻{news_id}失败')
                 logger.info(add_detection_task_result.message)
 
     return ResponseUtil.success(msg=add_detection_task_result.message)
