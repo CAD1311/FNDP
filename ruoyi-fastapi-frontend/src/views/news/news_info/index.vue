@@ -180,7 +180,8 @@
 
 <script setup name="News_info">
 import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info,refuteNews_info} from "@/api/news/news_info";
-import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";import useUserStore from '@/store/modules/user'
+import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
+import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue'
 import UploadFile from '@/components/FileUpload/index.vue'
@@ -238,11 +239,11 @@ function getList() {
 
 
 
-// 新增：获取状态信息
+// 获取新闻检测结果信息
 function getStatusList() {
-  //listNews_status().then(response => {
+  //listDetection_task().then(response => {
   //  newsStatusList.value = response.data.reduce((acc, item) => {
-  //    acc[item.newsId] = item.newsStatus;
+  //    acc[item.newsId] = item.task_result;
   //    return acc;
   //  }, {});
   //});
@@ -380,6 +381,7 @@ function handleCheck(row) {
 }
 
 
+//为新闻检测结果显示增加颜色区别
 function getStatusColor(status) {
   switch (status) {
     case '谣言':
