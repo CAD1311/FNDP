@@ -109,3 +109,25 @@ class Detection_taskDao:
         """
         await db.execute(delete(DetectionTask).where(DetectionTask.task_id.in_([detection_task.task_id])))
 
+
+    @classmethod
+    async def edit_detection_task_dao(cls, db: AsyncSession, detection_task: Detection_taskModel):
+        """
+        修改新闻检测数据库操作
+
+        :param db: orm对象
+        :param detection_task: 新闻检测对象
+        :return:
+        """
+        await db.execute(
+            update(DetectionTask)
+            .where(DetectionTask.news_id == detection_task.news_id)
+            .values({
+                'task_status': detection_task.task_status,
+                'task_result': detection_task.task_result,
+                'is_true': detection_task.is_true
+            })
+        )
+        await db.flush()
+
+        return detection_task

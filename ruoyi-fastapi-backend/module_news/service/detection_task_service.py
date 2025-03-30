@@ -13,6 +13,7 @@ from utils.excel_util import ExcelUtil
 import asyncio
 from utils.mock_qwen import Qwen
 from utils.rag import VectorStore,RAG
+from utils.parse_prediction_json import parse_prediction_json
 
 model_cache_dir = "./models"
 save_dir = "./vector_store"
@@ -132,103 +133,57 @@ class Detection_taskService:
 
         return binary_data
 
-    # async def detection_task_start_services(self, query_db: AsyncSession, page_objects: dict[DeleteDetection_taskModel,bool]):
-    #     """
-    #     新闻检测开始service
-    #
-    #     :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
-    #     :param news_info: 新闻信息
-    #     :return: 新闻检测开始校验结果
-    #     """
-    #     try:
-    #         texts=[]
-    #         news_dict={}
-    #         for page_object,value in page_objects.items():
-    #             await Detection_taskDao.add_detection_task_dao(query_db, page_object)
-    #             await query_db.commit()
-    #             news_info=await News_infoDao.get_news_info_detail_by_id(query_db, page_object.news_id)
-    #             news_dict[news_info]=value
-    #
-    #         for news_info,value in news_dict.items():
-    #             text=f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。<image>请你告诉我是否是谣言。"
-    #             if value:
-    #                 text=self.rag.generate(text)+text
-    #         tasks = [self.model.predict(news_item) for news_item in texts]
-    #
-    #         results = await asyncio.gather(*tasks)
-    #         return CrudResponseModel(is_success=True, message='新增成功')
-    #     except Exception as e:
-    #         await query_db.rollback()
-    #         raise e
-
-    async def detection_task_start_services(self, news_dict: dict[News_infoModel, bool]):
+    async def detection_task_start_services(self, query_db: AsyncSession, page_objects: dict[Detection_taskModel,bool]):
         """
         新闻检测开始service
 
         :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
+        :param news_info: 新闻信息
         :return: 新闻检测开始校验结果
         """
+        #通知前端开始检测
+        
+        try:
+            news_dict={}
+            for page_object,value in page_objects.items():
+                await Detection_taskDao.add_detection_task_dao(query_db, page_object)
+                await query_db.commit()
+                news_info=await News_infoDao.get_news_info_detail_by_id(query_db, page_object.news_id)
+                news_dict[news_info]=value
 
-        tasks = []
-        for news_info, use_rag in news_dict.items():
-            base_text = f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。"
-            if use_rag:
-                base_text = self.rag.generate(base_text) + base_text + "<image>请判断该新闻是否伪造，给出原因列表和改进建议"
-            tasks.append((
-                news_info.news_id,
-                self.model.predict(f"{base_text}<image>请判断该新闻是否伪造，给出原因列表和改进建议")
-            ))
+            tasks = []
+            for news_info, use_rag in news_dict.items():
+                base_text = f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。"
+                if use_rag:
+                    base_text = self.rag.generate(base_text) + base_text + "<image>请判断该新闻是否伪造，给出原因列表和改进建议"
+                tasks.append((
+                    news_info.news_id,
+                    self.model.predict(f"{base_text}<image>请判断该新闻是否伪造，给出原因列表和改进建议")
+                ))
 
-        results = await asyncio.gather(*[task[1] for task in tasks])
+            results = await asyncio.gather(*[task[1] for task in tasks])
 
-        return [
-            (
-                task[0],  # news_id
-                parsed['IsNewsTrue'],
-                parsed['reasons'],
-                parsed['recommendation']
-            )
-            for task, result in zip(tasks, results)
-            if (parsed := parse_prediction_json(result))
-        ]
+            res = [
+                (
+                    task[0],  # news_id
+                    parsed['IsNewsTrue'],
+                    parsed['reasons'],
+                    parsed['recommendation']
+                )
+                for task, result in zip(tasks, results)
+                if (parsed := parse_prediction_json(result))
+            ]
 
-def parse_prediction_json(predict_json_str):
-    """
-    解析预测 JSON 字符串，转换为 Python 对象
-
-    Args:
-        predict_json_str (str): 包含预测结果的 JSON 字符串
-
-    Returns:
-        dict: 包含解析后的预测结果，如果解析失败则返回默认值
-    """
-    try:
-        # 尝试直接解析 JSON
-        prediction = json.loads(predict_json_str)
-
-        # 提取关键字段
-        result = {
-            'IsNewsTrue': prediction.get('IsNewsTrue'),
-            'reasons': prediction.get('reasons', []),
-            'recommendation': prediction.get('recommendation', '')
-        }
-
-        return result
-
-    except json.JSONDecodeError:
-        # JSON 解析失败，尝试使用正则表达式提取 IsNewsTrue
-        is_news_true_match = re.search(r'"IsNewsTrue"\s*:\s*([01])', predict_json_str)
-        if is_news_true_match:
-            return {
-                'IsNewsTrue': int(is_news_true_match.group(1)),
-                'reasons': [],
-                'recommendation': '无法解析完整JSON，仅提取了预测结果'
-            }
-        else:
-            # 完全无法解析
-            return {
-                'IsNewsTrue': None,
-                'reasons': [],
-                'recommendation': '无法解析JSON'
-            }
+            for edit_news_id, edit_is_true, reasons, recommendation in res:
+                await Detection_taskDao.edit_detection_task_dao(query_db, Detection_taskModel(
+                    news_id=edit_news_id,
+                    taskStatus=1,
+                    task_result=f"解释：{reasons}，改进建议：{recommendation}",
+                    is_true=edit_is_true
+                ))
+    
+            return CrudResponseModel(is_success=True, message='检测完成')
+        except Exception as e:
+            await query_db.rollback()
+            raise e
 
