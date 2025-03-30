@@ -57,6 +57,14 @@ class Qwen:
         """Stop the batch processing loop"""
         if self.batch_task:
             self.is_running = False
+            
+            # Cancel all pending futures
+            while not self.request_queue.empty():
+                future, _ = self.request_queue.get_nowait()
+                if not future.done():
+                    future.set_exception(asyncio.CancelledError("Service stopped"))
+                self.request_queue.task_done()
+
             self.batch_task.cancel()
             try:
                 await self.batch_task
@@ -78,8 +86,6 @@ class Qwen:
         """
         logger.info(f"Processing request: text='{text[:30]}...' image={'Yes' if path_to_image else 'No'}")
 
-        # Simulate processing time
-        await asyncio.sleep(0.05)
 
         # Create mock inputs structure
         mock_inputs = {
@@ -91,6 +97,7 @@ class Qwen:
             "has_image": path_to_image is not None
         }
 
+        logger.info("------------------------------1-----------------------------------")
         if path_to_image:
             mock_inputs["inputs"]["image_features"] = "mock_image_tensor"
 
@@ -256,13 +263,14 @@ class Qwen:
         """
         # Prepare request data
         data = await self._process_request(text, path_to_image)
-
+        logger.info("------------------------------2-----------------------------------")
         # Create future object
         future = asyncio.Future()
-
+        logger.info("------------------------------3-")
         # Submit to request queue
         await self.request_queue.put((future, data))
-
+        logger.info("------------------------------4-")
         # Wait for result
         result = await future
+  
         return result

@@ -18,6 +18,9 @@ from utils.response_util import ResponseUtil
 from pydantic import BaseModel
 
 
+service = Detection_taskService()
+service.start_service()
+
 detection_taskController = APIRouter(prefix='/detection/detection_task', dependencies=[Depends(LoginService.get_current_user)])
 
 
@@ -50,7 +53,7 @@ async def detect_news_news_info(
     current_user: CurrentUserModel = Depends(LoginService.get_current_user),
 ):
     news_ids = params.news_ids
-    add_detection_tasks = {}
+    add_detection_tasks = []
     if news_ids:
         for news_id in news_ids:
             news_info = await News_infoService.news_info_detail_services(query_db, news_id)
@@ -64,11 +67,13 @@ async def detect_news_news_info(
                 add_detection_task.task_status = 0
                 add_detection_task.user_id = current_user.user.user_id
                 add_detection_task.news_id = news_id
-                add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_tasks)
+                add_detection_task.task_result = ''
+                add_detection_task.is_true = 0
+                add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
                 logger.info(add_detection_task_result.message)
-                add_detection_tasks[add_detection_task] = True
+                add_detection_tasks.append(add_detection_task)
         
-        await Detection_taskService.detection_task_start_services(query_db, add_detection_tasks)
+        await service.detection_task_start_services(query_db, add_detection_tasks)
 
     return ResponseUtil.success(msg=add_detection_task_result.message)
 
