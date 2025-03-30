@@ -3,7 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from module_news.entity.do.news_info_do import NewsInfo
 from module_news.entity.vo.news_info_vo import News_infoModel, News_infoPageQueryModel
 from utils.page_util import PageUtil
-
+from redis import asyncio as aioredis
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
+import json
 
 class News_infoDao:
     """
@@ -11,29 +14,94 @@ class News_infoDao:
     """
 
     @classmethod
-    async def get_news_info_detail_by_id(cls, db: AsyncSession, news_id: int):
+    async def get_news_info_detail_by_id(
+        cls, 
+        db: AsyncSession, 
+        news_id: int,
+        redis: aioredis.Redis = None
+    ) -> Optional[NewsInfo]:
         """
-        根据新闻编号获取新闻信息详细信息
-
-        :param db: orm对象
-        :param news_id: 新闻编号
-        :return: 新闻信息信息对象
+        优先查询 Redis 缓存，未命中则回源数据库 
         """
-        news_info_info = (
-            (
-                await db.execute(
-                    select(NewsInfo)
-                    .where(
-                        NewsInfo.news_id == news_id
-                    )
-                )
+        if not redis:
+            # 没有 Redis 连接，直接查询数据库
+            result = await db.execute(
+                select(NewsInfo).where(NewsInfo.news_id == news_id)
             )
-            .scalars()
-            .first()
+            news_info = result.scalars().first()
+            return news_info
+        
+        # 1. 尝试从 Redis 获取缓存
+        cache_key = f"news_info:{news_id}"
+        cached_data = await redis.get(cache_key)
+        
+        if cached_data:
+            # 缓存命中，反序列化并返回
+            data = json.loads(cached_data)
+            return NewsInfo(**data)  # 假设 NewsInfo 支持字典初始化
+        
+        # 2. 缓存未命中，查询数据库
+        result = await db.execute(
+            select(NewsInfo).where(NewsInfo.news_id == news_id)
         )
+        news_info = result.scalars().first()
+        
+        if news_info:
+            # 3. 将数据库结果写入 Redis（设置过期时间防穿透）[[1]][[4]]
+            await redis.setex(
+                cache_key,
+                3600,  # 缓存1小时
+                json.dumps(news_info.__dict__)  # 序列化为 JSON
+            )
+        
+        return news_info
 
-        return news_info_info
 
+    @classmethod
+    async def get_news_info_by_ids(
+        cls, 
+        db: AsyncSession, 
+        news_ids: list[int],
+        redis: aioredis.Redis = None
+    ) -> list[NewsInfo]:
+        """
+        批量获取新闻信息（优先使用 Redis 缓存）[[1]][[8]]
+        """
+        if not redis:
+            return await cls._get_news_info_by_ids_db(db, news_ids)
+        
+        # 1. 构建缓存键并批量查询
+        cache_keys = [f"news_info:{nid}" for nid in news_ids]
+        cached_data = await redis.mget(cache_keys)
+        
+        # 2. 分离命中和未命中的 news_id
+        cached_dict = {}
+        missed_ids = []
+        for nid, data in zip(news_ids, cached_data):
+            if data:
+                cached_dict[nid] = NewsInfo(**json.loads(data))
+            else:
+                missed_ids.append(nid)
+        
+        # 3. 回源查询未命中的数据
+        if missed_ids:
+            db_news = await cls._get_news_info_by_ids_db(db, missed_ids)
+            # 写入缓存（使用 Pipeline 减少网络延迟）[[3]][[5]]
+            async with redis.pipeline() as pipe:
+                for news in db_news:
+                    key = f"news_info:{news.news_id}"
+                    pipe.setex(key, 3600, json.dumps(news.__dict__))
+                await pipe.execute()
+            cached_dict.update({news.news_id: news for news in db_news})
+        
+        # 4. 按输入顺序返回结果
+        return [cached_dict.get(nid) for nid in news_ids]
+    
+    @classmethod
+    async def _get_news_info_by_ids_db(cls, db: AsyncSession, news_ids: list[int]):
+        """数据库批量查询实现"""
+        result = await db.execute(select(NewsInfo).where(NewsInfo.news_id.in_(news_ids)))
+        return result.scalars().all()
     @classmethod
     async def get_news_info_detail_by_info(cls, db: AsyncSession, news_info: News_infoModel):
         """

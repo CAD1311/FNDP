@@ -13,9 +13,9 @@ class VectorStore:
                  device: Optional[str] = None):
         # 自动检测设备
         if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = 'cpu' #'cuda' if torch.cuda.is_available() else 'cpu'
         else:
-            self.device = device
+            self.device = 'cpu' #device
 
         self.documents = []  # 存储原始文档
         self.embeddings = None  # 存储文档的嵌入向量，将使用NumPy数组
@@ -23,8 +23,8 @@ class VectorStore:
         self.model = SentenceTransformer(
             embedding_model,
             cache_folder=model_cache_dir,
-            device=self.device,
-            local_files_only=True
+            device="cpu",
+            local_files_only=False
         )
 
         print(f"模型已加载到 {self.device} 设备")
