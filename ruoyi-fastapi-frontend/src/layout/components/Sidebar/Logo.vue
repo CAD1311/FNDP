@@ -25,7 +25,8 @@ defineProps({
   }
 })
 
-const title = import.meta.env.VITE_APP_TITLE;
+//const title = import.meta.env.VITE_APP_TITLE;
+const title = '伪造新闻检测平台'
 const settingsStore = useSettingsStore();
 const sideTheme = computed(() => settingsStore.sideTheme);
 

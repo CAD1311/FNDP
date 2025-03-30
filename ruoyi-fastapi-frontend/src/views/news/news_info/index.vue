@@ -147,7 +147,10 @@
         <el-input v-model="form.newsTitle" type="textarea" placeholder="请输入内容" />
       </el-form-item>
       <el-form-item label="新闻内容" prop="newsContent">
-        <editor v-model="form.newsContent" :min-height="192"/>
+        <editor v-model="form.newsContent" 
+        :min-height="192"
+        :upload-images="handleEditorImageUpload" />
+        
       </el-form-item>
       <el-form-item label="发布时间" prop="publishTime">
         <el-date-picker clearable
@@ -181,6 +184,7 @@
 <script setup name="News_info">
 import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info,refuteNews_info} from "@/api/news/news_info";
 import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
+//import { addNews_images } from "@/api/news/news_images";
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue'
@@ -327,6 +331,8 @@ function handleUpdate(row) {
 function submitForm() {
   form.value.userId = userStore.id;
   proxy.$refs["news_infoRef"].validate(valid => {
+    const { textContent, images } = parseNewsContent(form.value.newsContent);
+
     if (valid) {
       if (form.value.newsId != null) {
         updateNews_info(form.value).then(response => {
@@ -335,11 +341,27 @@ function submitForm() {
           getList();
         });
       } else {
+        //form.value.newsContent = textContent;
+        //新增新闻文本
         addNews_info(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
           getList();
         });
+        ////逐个新增新闻图片
+        //images.forEach(async (image) => {
+//
+        //  img_form = {img_id:null,
+        //    news_id:form.value.newsId,
+        //    img_data:image
+        //  };
+//
+        //  addNews_images(img_form).then(response => {
+        //    open.value = false;
+        //    getList();
+        //  });
+        //});
+
       }
     }
   });
@@ -404,6 +426,31 @@ function handleRefute(row){
 
 }
 
+// 解析HTML内容
+const parseNewsContent = (html) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  
+  // 提取纯文本内容
+  const textContent = doc.body.textContent;
+  
+  // 提取Base64图片
+  const images = Array.from(doc.querySelectorAll('img'))
+    .map(img => img.src)
+    .filter(src => src.startsWith('data:image'));
+
+  return { textContent, images };
+};
+
+// 新增编辑器图片处理
+const handleEditorImageUpload = async (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+};
 
 
 
