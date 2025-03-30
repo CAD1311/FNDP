@@ -348,19 +348,6 @@ function submitForm() {
           open.value = false;
           getList();
         });
-        ////逐个新增新闻图片
-        //images.forEach(async (image) => {
-//
-        //  img_form = {img_id:null,
-        //    news_id:form.value.newsId,
-        //    img_data:image
-        //  };
-//
-        //  addNews_images(img_form).then(response => {
-        //    open.value = false;
-        //    getList();
-        //  });
-        //});
 
       }
     }
