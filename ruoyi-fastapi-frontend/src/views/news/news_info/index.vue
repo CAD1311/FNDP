@@ -102,18 +102,12 @@
 
       <el-table-column label="状态" align="center" prop="newsStatus">
         <template #default="scope">
-          <!--
-          <span :style="{ color: getStatusColor(scope.row.newsStatus) }">
-            {{ scope.row.newsStatus }}
-          </span>
-          -->
-
-          <span :style="{ color: getStatusColor('谣言') }" >
-            谣言
+          <!-- 新增：根据statusList数组中该id新闻的状态值显示不同的颜色-->
+          <span :style="{ color: getStatusColor(getNewsStatus(scope.row.newsId)) }">
+            {{ getNewsStatus(scope.row.newsId) }}
           </span>
         </template>
       </el-table-column>
-
 
       <el-table-column label="上传者" align="center" prop="createBy" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -134,11 +128,9 @@
       @pagination="getList"
     />
 
-
     <el-dialog title="批量上传新闻" v-model="batchUploadOpen" width="800px" append-to-body>
       <UploadFile @success="handleUploadSuccess" />
     </el-dialog>
-
 
     <!-- 添加或修改新闻信息对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -147,7 +139,10 @@
         <el-input v-model="form.newsTitle" type="textarea" placeholder="请输入内容" />
       </el-form-item>
       <el-form-item label="新闻内容" prop="newsContent">
-        <editor v-model="form.newsContent" :min-height="192"/>
+        <editor v-model="form.newsContent" 
+        :min-height="192"
+        :upload-images="handleEditorImageUpload" />
+        
       </el-form-item>
       <el-form-item label="发布时间" prop="publishTime">
         <el-date-picker clearable
@@ -181,9 +176,10 @@
 <script setup name="News_info">
 import { listNews_info, getNews_info, delNews_info, addNews_info, updateNews_info,checkNews_info,refuteNews_info} from "@/api/news/news_info";
 import {listDetection_task,getDetection_task,addDetection_task,updateDetection_task} from "@/api/detection/detection_task";
+//import { addNews_images } from "@/api/news/news_images";
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
-import { toRaw } from 'vue'
+import { ref, toRaw, reactive, getCurrentInstance } from 'vue'
 import UploadFile from '@/components/FileUpload/index.vue'
 
 const userStore = useUserStore()
@@ -191,6 +187,8 @@ const userStore = useUserStore()
 const { proxy } = getCurrentInstance();
 
 const news_infoList = ref([]);
+const detection_taskList = ref([]) ;
+let statusList = ref([]); // 新增：用于存储新闻的检测结果信息
 const open = ref(false);
 const batchUploadOpen = ref(false);
 const loading = ref(true);
@@ -221,8 +219,7 @@ const data = reactive({
   newsStatusList: {},  // 新增：用于存储新闻的状态信息
 });
 
-
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, rules ,newsStatusList} = toRefs(data);
 
 /** 查询新闻信息列表 */
 function getList() {
@@ -237,18 +234,32 @@ function getList() {
   });
 }
 
-
-
 // 获取新闻检测结果信息
 function getStatusList() {
-  //listDetection_task().then(response => {
-  //  newsStatusList.value = response.data.reduce((acc, item) => {
-  //    acc[item.newsId] = item.task_result;
-  //    return acc;
-  //  }, {});
-  //});
+  //获取检测任务表
+  listDetection_task().then(response => {
+    detection_taskList.value = response.rows;
+    console.log("获取检测任务表：",detection_taskList.value);
+    //从检测任务表中获取新闻id对应的状态信息
+    let newsIdList = news_infoList.value.map(item => item.newsId);
+    statusList.value = detection_taskList.value.filter(item => newsIdList.includes(item.newsId));
+    //打印日志 查询结果
+    console.log("查询结果：",statusList.value);
+    mapStatusToNews();
+  });
 }
 
+// 映射新闻的状态
+function mapStatusToNews() {
+  news_infoList.value.forEach(newsItem => {
+    const statusItem = statusList.value.find(status => status.newsId === newsItem.newsId);
+    if (statusItem) {
+      newsItem.newsStatus = statusItem.isTrue === 1 ? '真实' : '谣言';
+    } else {
+      newsItem.newsStatus = '尚无定论';
+    }
+  });
+}
 
 /** 取消按钮 */
 function cancel() {
@@ -306,7 +317,6 @@ function handleAddBatch(){
   batchUploadOpen.value = true;
 }
 
-
 function handleUploadSuccess() {
   batchUploadOpen.value = false;
   getList(); // 刷新列表
@@ -327,6 +337,8 @@ function handleUpdate(row) {
 function submitForm() {
   form.value.userId = userStore.id;
   proxy.$refs["news_infoRef"].validate(valid => {
+    const { textContent, images } = parseNewsContent(form.value.newsContent);
+
     if (valid) {
       if (form.value.newsId != null) {
         updateNews_info(form.value).then(response => {
@@ -356,7 +368,6 @@ function handleDelete(row) {
   }).catch(() => {});
 }
 
-
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download('news/news_info/export', {
@@ -377,9 +388,16 @@ function handleCheck(row) {
     getList();
     proxy.$modal.msgSuccess("正在检测");
   }).catch(() => {});
-
 }
 
+// 根据newsId获取新闻状态
+function getNewsStatus(newsId) {
+  const statusItem = statusList.value.find(item => item.newsId === newsId);
+  if (statusItem) {
+    return statusItem.isTrue === 1 ? '真实' : '谣言';
+  }
+  return '尚无定论';
+}
 
 //为新闻检测结果显示增加颜色区别
 function getStatusColor(status) {
@@ -388,7 +406,7 @@ function getStatusColor(status) {
       return 'red';
     case '尚无定论':
       return 'gray';
-    case '事实':
+    case '真实':
       return 'green';
     default:
       return 'black'; // 默认颜色或其他颜色
@@ -401,11 +419,31 @@ function handleRefute(row){
   refuteNews_info(_newsIds).then(response => {
     console.log(response);
   });
-
 }
 
+// 解析HTML内容
+const parseNewsContent = (html) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  // 提取纯文本内容
+  const textContent = doc.body.textContent;
+  // 提取Base64图片
+  const images = Array.from(doc.querySelectorAll('img'))
+    .map(img => img.src)
+    .filter(src => src.startsWith('data:image'));
 
+  return { textContent, images };
+};
 
+// 新增编辑器图片处理
+const handleEditorImageUpload = async (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+};
 
 const router = useRouter();
 function handleDetail(row) {
