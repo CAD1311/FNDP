@@ -132,65 +132,65 @@ class Detection_taskService:
 
         return binary_data
 
-    async def detection_task_start_services(self, query_db: AsyncSession, page_objects: dict[DeleteDetection_taskModel,bool]):
+    # async def detection_task_start_services(self, query_db: AsyncSession, page_objects: dict[DeleteDetection_taskModel,bool]):
+    #     """
+    #     新闻检测开始service
+    #
+    #     :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
+    #     :param news_info: 新闻信息
+    #     :return: 新闻检测开始校验结果
+    #     """
+    #     try:
+    #         texts=[]
+    #         news_dict={}
+    #         for page_object,value in page_objects.items():
+    #             await Detection_taskDao.add_detection_task_dao(query_db, page_object)
+    #             await query_db.commit()
+    #             news_info=await News_infoDao.get_news_info_detail_by_id(query_db, page_object.news_id)
+    #             news_dict[news_info]=value
+    #
+    #         for news_info,value in news_dict.items():
+    #             text=f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。<image>请你告诉我是否是谣言。"
+    #             if value:
+    #                 text=self.rag.generate(text)+text
+    #         tasks = [self.model.predict(news_item) for news_item in texts]
+    #
+    #         results = await asyncio.gather(*tasks)
+    #         return CrudResponseModel(is_success=True, message='新增成功')
+    #     except Exception as e:
+    #         await query_db.rollback()
+    #         raise e
+
+    async def detection_task_start_services(self, news_dict: dict[News_infoModel, bool]):
         """
         新闻检测开始service
 
         :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
-        :param news_info: 新闻信息
         :return: 新闻检测开始校验结果
         """
-        try:
-            texts=[]
-            news_dict={}
-            for page_object,value in page_objects.items():
-                await Detection_taskDao.add_detection_task_dao(query_db, page_object)
-                await query_db.commit()
-                news_info=await News_infoDao.get_news_info_detail_by_id(query_db, page_object.news_id)
-                news_dict[news_info]=value
-            
-            for news_info,value in news_dict.items():
-                text=f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。<image>请你告诉我是否是谣言。"
-                if value:
-                    text=self.rag.generate(text)+text
-            tasks = [self.model.predict(news_item) for news_item in texts]
 
-            results = await asyncio.gather(*tasks)
-            return CrudResponseModel(is_success=True, message='新增成功')
-        except Exception as e:
-            await query_db.rollback()
-            raise e
+        tasks = []
+        for news_info, use_rag in news_dict.items():
+            base_text = f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。"
+            if use_rag:
+                base_text = self.rag.generate(base_text) + base_text + "<image>请判断该新闻是否伪造，给出原因列表和改进建议"
+            tasks.append((
+                news_info.news_id,
+                self.model.predict(f"{base_text}<image>请判断该新闻是否伪造，给出原因列表和改进建议")
+            ))
 
-        async def detection_task_start_services(self, news_dict: dict[News_infoModel, bool]):
-            """
-            新闻检测开始service
+        results = await asyncio.gather(*[task[1] for task in tasks])
 
-            :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
-            :return: 新闻检测开始校验结果
-            """
-
-            tasks = []
-            for news_info, use_rag in news_dict.items():
-                base_text = f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。"
-                if use_rag:
-                    base_text = self.rag.generate(base_text) + base_text + "<image>请判断该新闻是否伪造，给出原因列表和改进建议"
-                tasks.append((
-                    news_info.news_id,
-                    self.model.predict(f"{base_text}<image>请判断该新闻是否伪造，给出原因列表和改进建议")
-                ))
-
-            results = await asyncio.gather(*[task[1] for task in tasks])
-
-            return [
-                (
-                    task[0],  # news_id
-                    parsed['IsNewsTrue'],
-                    parsed['reasons'],
-                    parsed['recommendation']
-                )
-                for task, result in zip(tasks, results)
-                if (parsed := parse_prediction_json(result))
-            ]
+        return [
+            (
+                task[0],  # news_id
+                parsed['IsNewsTrue'],
+                parsed['reasons'],
+                parsed['recommendation']
+            )
+            for task, result in zip(tasks, results)
+            if (parsed := parse_prediction_json(result))
+        ]
 
 def parse_prediction_json(predict_json_str):
     """
