@@ -50,14 +50,13 @@ async def detect_news_news_info(
     current_user: CurrentUserModel = Depends(LoginService.get_current_user),
 ):
     news_ids = params.news_ids
+    add_detection_tasks = {}
     if news_ids:
         for news_id in news_ids:
             news_info = await News_infoService.news_info_detail_services(query_db, news_id)
             if news_info:
-                # 每次循环创建一个新的 Detection_taskModel 实例
-                add_detection_task = Detection_taskModel()  # 关键修复：初始化实例
+                add_detection_task = Detection_taskModel() 
                 
-                # 设置属性
                 add_detection_task.update_by = current_user.user.user_name
                 add_detection_task.update_time = datetime.now()
                 add_detection_task.create_by = current_user.user.user_name
@@ -66,25 +65,27 @@ async def detect_news_news_info(
                 add_detection_task.user_id = current_user.user.user_id
                 add_detection_task.news_id = news_id
                 
-                # 调用服务保存到数据库
-                add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+                add_detection_tasks[add_detection_task] = True
+        add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_tasks)
 
-                #根据新闻id获取新闻详情，并进行检测
-                news_info_detail_result = await News_infoService.news_info_detail_services(query_db, news_id)
-                #调用检测服务
-                detection_result = await Detection_taskService.detection_task_start_services(news_id,news_info_detail_result)
-                #检测结果保存到数据库
-                if detection_result:
-                    # 保存检测结果到数据库
-                    add_detection_task.task_status = 1
-                    add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
-                    logger.info(f'检测新闻{news_id}成功')
-                else:
-                    # 保存检测结果到数据库
-                    add_detection_task.task_status = 2
-                    add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
-                    logger.info(f'检测新闻{news_id}失败')
-                logger.info(add_detection_task_result.message)
+        '''
+        #根据新闻id获取新闻详情，并进行检测
+        news_info_detail_result = await News_infoService.news_info_detail_services(query_db, news_id)
+        #调用检测服务
+        detection_result = await Detection_taskService.detection_task_start_services(news_id,news_info_detail_result)
+        #检测结果保存到数据库
+        if detection_result:
+            # 保存检测结果到数据库
+            add_detection_task.task_status = 1
+            add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+            logger.info(f'检测新闻{news_id}成功')
+        else:
+            # 保存检测结果到数据库
+            add_detection_task.task_status = 2
+            add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
+            logger.info(f'检测新闻{news_id}失败')'
+        '''
+        logger.info(add_detection_task_result.message)
 
     return ResponseUtil.success(msg=add_detection_task_result.message)
 

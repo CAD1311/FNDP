@@ -4,14 +4,15 @@ from config.constant import CommonConstant
 from exceptions.exception import ServiceException
 from module_admin.entity.vo.common_vo import CrudResponseModel
 from module_news.dao.detection_task_dao import Detection_taskDao
+from module_news.dao.news_info_dao import News_infoDao
 from module_news.entity.vo.news_info_vo import News_infoModel
 from module_news.entity.vo.detection_task_vo import DeleteDetection_taskModel, Detection_taskModel, \
     Detection_taskPageQueryModel
 from utils.common_util import CamelCaseUtil
 from utils.excel_util import ExcelUtil
 import asyncio
-from asycn_model_tool import Qwen
-from rag import VectorStore,RAG
+from utils.mock_qwen import Qwen
+from utils.rag import VectorStore,RAG
 
 model_cache_dir = "./models"
 save_dir = "./vector_store"
@@ -131,28 +132,32 @@ class Detection_taskService:
 
         return binary_data
 
-    async def detection_task_start_services(self, news_dict: dict[News_infoModel,bool]):
+    async def detection_task_start_services(self, query_db: AsyncSession, page_objects: dict[DeleteDetection_taskModel,bool]):
         """
         新闻检测开始service
 
         :param news_dict: 新闻信息+是否使用rag(1为使用，0为不使用)
-
-
         :param news_info: 新闻信息
         :return: 新闻检测开始校验结果
         """
+        try:
+            texts=[]
+            news_dict={}
+            for page_object,value in page_objects.items():
+                await Detection_taskDao.add_detection_task_dao(query_db, page_object)
+                await query_db.commit()
+                news_info=await News_infoDao.get_news_info_detail_by_id(query_db, page_object.news_id)
+                news_dict[news_info]=value
+            
+            for news_info,value in news_dict.items():
+                text=f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。<image>请你告诉我是否是谣言。"
+                if value:
+                    text=self.rag.generate(text)+text
+            tasks = [self.model.predict(news_item) for news_item in texts]
 
-        texts=[]
-        for news_info,value in news_dict.items():
-            text=f"这是一个在{news_info.publish_time}{news_info.platform}发布的新闻。标题是{news_info.news_title}，正文{news_info.news_content},是属于{news_info.hash_tag}类别的新闻。<image>请你告诉我是否是谣言。"
-            if value:
-                text=self.rag.generate(text)+text
-        
+            results = await asyncio.gather(*tasks)
+            return CrudResponseModel(is_success=True, message='新增成功')
+        except Exception as e:
+            await query_db.rollback()
+            raise e
 
-        
-
-        tasks = [self.model.predict(news_item) for news_item in texts]
-
-        results = await asyncio.gather(*tasks)
-
-        return 
