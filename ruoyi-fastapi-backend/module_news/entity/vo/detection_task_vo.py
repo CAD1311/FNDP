@@ -22,6 +22,8 @@ class Detection_taskModel(BaseModel):
     task_status: Optional[int] = Field(default=None, description='任务状态')
     user_id: Optional[int] = Field(default=None, description='所属用户')
     news_id: Optional[int] = Field(default=None, description='涉及新闻')
+    task_result: Optional[str] = Field(default=None, description='检测结果')
+    is_true: Optional[int] = Field(default=None, description='属实')
 
     @NotBlank(field_name='task_status', message='任务状态不能为空')
     def get_task_status(self):

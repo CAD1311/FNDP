@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, SmallInteger, Column, BigInteger, String
+from sqlalchemy import DateTime, SmallInteger, Column, BigInteger, String,Text
 from config.database import Base
 
 
@@ -17,6 +17,8 @@ class DetectionTask(Base):
     task_status = Column(SmallInteger, nullable=False, comment='任务状态') #0-检测中 1-检测完成 2-检测失败
     user_id = Column(BigInteger, nullable=False, comment='所属用户')
     news_id = Column(BigInteger, nullable=False, comment='涉及新闻')
+    task_result = Column(Text, nullable=True, comment='检测结果')
+    is_true = Column(SmallInteger, nullable=True, comment='属实')
 
 
 
