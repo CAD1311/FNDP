@@ -142,13 +142,6 @@ async def detect_news_news_info(
             ))
             submit_button.click()'''
 
-            # 等待提交完成（可根据实际需求调整）
-            time.sleep(30)
-
-            # 关闭浏览器
-            driver.quit()
 
                 
- 
-
     return ResponseUtil.success(msg=None)
