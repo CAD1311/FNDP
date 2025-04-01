@@ -70,7 +70,7 @@
           icon="Check"
           :disabled="multiple"
           @click="handleCheck"
-          v-hasPermi="['news:news_info:check']"
+          v-hasPermi="['detection:detection_task:add']"
         >检测</el-button>
       </el-col>
 
