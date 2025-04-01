@@ -92,14 +92,13 @@
   
   
   <script setup>
-  import { Radar } from "@antv/g2plot";
-  import EditableLinkGroup from "./editable-link-group.vue";
+
   import useUserStore from '@/store/modules/user'
   import { useRouter } from 'vue-router'
   
-  defineOptions({
-    name: "DashBoard",
-  });
+  //defineOptions({
+  //  name: "DashBoard",
+  //});
   const userStore = useUserStore()
   const router = useRouter()
   

@@ -59,7 +59,7 @@
     </el-form>
     <!--  底部  -->
     <div class="el-login-footer">
-      <span>Copyright © 2024 insistence.tech All Rights Reserved.</span>
+      <span>怪猎糕手队</span>
     </div>
   </div>
 </template>
@@ -178,7 +178,7 @@ getCookie();
 
 .title {
   margin: 0 0 30px 0;
-  text-align: right;
+  text-align: center;
   color: #707070;
   font-size: 24px;
   padding-right: 10px;
