@@ -51,16 +51,16 @@ class Qwen:
         """Start the batch processing loop"""
         if self.batch_task is None:
             self.batch_task = asyncio.create_task(self._batch_process_loop())
-            logger.info("Batch processing loop started")
+            logger.info("-------------------------------Batch processing loop started---------------------------------")
 
     async def stop(self):
         """Stop the batch processing loop"""
         if self.batch_task:
             self.is_running = False
             
-            # Cancel all pending futures
+            # 清空队列并取消所有等待中的future
             while not self.request_queue.empty():
-                future, _ = self.request_queue.get_nowait()
+                future, _ = await self.request_queue.get()
                 if not future.done():
                     future.set_exception(asyncio.CancelledError("Service stopped"))
                 self.request_queue.task_done()
@@ -70,8 +70,9 @@ class Qwen:
                 await self.batch_task
             except asyncio.CancelledError:
                 pass
-            self.batch_task = None
-            logger.info("Batch processing loop stopped")
+            finally:
+                self.batch_task = None
+                logger.info("Batch processing loop stopped")
 
     async def _process_request(self, text: str, path_to_image: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -137,21 +138,25 @@ class Qwen:
                     # Set results for futures
                     for i, future in enumerate(future_list):
                         if not future.cancelled():
+                            logger.info(f"Setting result for future {i}: {results[i][:50]}")
                             future.set_result(results[i])
 
                     # Mark tasks as done
                     for _ in range(len(batch)):
                         self.request_queue.task_done()
+                        logger.info(f"Batch completed: {len(batch)} requests processed")
 
             except asyncio.CancelledError:
                 logger.info("Batch processing loop cancelled")
                 break
             except Exception as e:
+                logger.error("Batch processing error:", exc_info=True)
                 logger.error(f"Batch processing loop error: {e}", exc_info=True)
                 # Set exceptions for all waiting futures
                 for future in future_list:
                     if not future.done():
-                        future.set_exception(e)
+                       logger.error(f"Setting exception for future: {str(e)}")
+                       future.set_exception(e)
 
                 # Mark tasks as done
                 for _ in range(len(batch)):

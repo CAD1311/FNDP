@@ -19,7 +19,9 @@ from pydantic import BaseModel
 
 
 service = Detection_taskService()
-service.start_service()
+# 添加一个函数来获取服务实例
+def get_detection_service(request: Request) -> Detection_taskService:
+    return request.app.state.detection_service
 
 detection_taskController = APIRouter(prefix='/detection/detection_task', dependencies=[Depends(LoginService.get_current_user)])
 
@@ -51,6 +53,7 @@ async def detect_news_news_info(
     request: Request,
     query_db: AsyncSession = Depends(get_db),   
     current_user: CurrentUserModel = Depends(LoginService.get_current_user),
+    service: Detection_taskService = Depends(get_detection_service),  # 从请求中获取服务实例
 ):
     news_ids = params.news_ids
     add_detection_tasks = []

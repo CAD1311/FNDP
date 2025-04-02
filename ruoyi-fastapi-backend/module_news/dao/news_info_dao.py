@@ -14,47 +14,38 @@ class News_infoDao:
     """
 
     @classmethod
-    async def get_news_info_detail_by_id(
-        cls, 
-        db: AsyncSession, 
-        news_id: int,
-        redis: aioredis.Redis = None
-    ) -> Optional[NewsInfo]:
+    async def get_news_info_detail_by_id(cls, db: AsyncSession, news_id: int, redis: aioredis.Redis = None):
         """
-        优先查询 Redis 缓存，未命中则回源数据库 
+        根据新闻编号获取新闻信息详细信息
+
+        :param db: orm对象
+        :param news_id: 新闻编号
+        :param redis: Redis连接对象
+        :return: 新闻信息信息对象
         """
-        if not redis:
-            # 没有 Redis 连接，直接查询数据库
-            result = await db.execute(
-                select(NewsInfo).where(NewsInfo.news_id == news_id)
+        if redis is not None:
+            cache_key = f"news_info:{news_id}"
+            cached_data = await redis.get(cache_key)
+            if cached_data:
+                return NewsInfo(**json.loads(cached_data))
+        
+        news_info_info = (
+            (
+                await db.execute(
+                    select(NewsInfo)
+                    .where(
+                        NewsInfo.news_id == news_id
+                    )
+                )
             )
-            news_info = result.scalars().first()
-            return news_info
-        
-        # 1. 尝试从 Redis 获取缓存
-        cache_key = f"news_info:{news_id}"
-        cached_data = await redis.get(cache_key)
-        
-        if cached_data:
-            # 缓存命中，反序列化并返回
-            data = json.loads(cached_data)
-            return NewsInfo(**data)  # 假设 NewsInfo 支持字典初始化
-        
-        # 2. 缓存未命中，查询数据库
-        result = await db.execute(
-            select(NewsInfo).where(NewsInfo.news_id == news_id)
+            .scalars()
+            .first()
         )
-        news_info = result.scalars().first()
+
+        if redis is not None and news_info_info is not None:
+            await redis.setex(cache_key, 3600, json.dumps(news_info_info.__dict__))
         
-        if news_info:
-            # 3. 将数据库结果写入 Redis（设置过期时间防穿透）[[1]][[4]]
-            await redis.setex(
-                cache_key,
-                3600,  # 缓存1小时
-                json.dumps(news_info.__dict__)  # 序列化为 JSON
-            )
-        
-        return news_info
+        return news_info_info
 
 
     @classmethod

@@ -36,7 +36,7 @@ class Detection_taskService:
             save_dir=save_dir,
             embedding_model='shibing624/text2vec-base-chinese',
             model_cache_dir=model_cache_dir,
-            device='cuda'
+            device='cpu'
         )
         self.rag=RAG(self.vectorstore)
 
@@ -164,24 +164,45 @@ class Detection_taskService:
                     if news_info := news_info_dict.get(news_id):
                         base_text = self._build_base_text(news_info)
                         predict_tasks.append((
+                            news_id,
                             self._async_predict(base_text)
                         ))
-                        
                 logger.info(f"预测任务：{predict_tasks}")
-                results = await asyncio.gather(*[t for t in predict_tasks], return_exceptions=True)
+                coroutines = [task[1] for task in predict_tasks]
+                results = await asyncio.gather(*coroutines, return_exceptions=True)
+                # 新增异常记录
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        logger.error(f'任务{i}异常: {str(result)}', exc_info=True)
+                    elif isinstance(result, BaseException):
+                        logger.error(f'任务{i}基础异常: {str(result)}')
                 logger.info(f"检测结果：{results}")
 
                 update_params = []
-                for (news_id, _), result in zip(predict_tasks, results):
-                    if isinstance(result, Exception) or not (parsed := parse_prediction_json(result)):
+                for task, result in zip(predict_tasks, results):
+                    news_id = task[0]
+                    if isinstance(result, Exception) or \
+                       not (parsed := parse_prediction_json(result)) or \
+                       not parsed.get('IsNewsTrue') or \
+                       not parsed.get('reasons'):
+                        logger.error(f'新闻{news_id}解析失败，结果:{result}')
                         continue
+                    
+                    # 添加字段校验
+                    required_fields = ['IsNewsTrue', 'reasons', 'recommendation']
+                    if not all(field in parsed for field in required_fields):
+                        logger.error(f'新闻{news_id}返回结果缺少必要字段: {parsed}')
+                        continue
+                    
+                    # 字段映射
                     update_params.append({
                         "news_id": news_id,
                         "task_status": 1,
                         "is_true": parsed["IsNewsTrue"],
-                        "task_result": f"解释：{parsed['reasons']}，改进建议：{parsed['recommendation']}"
+                        "task_result": f"是否真实：{parsed['IsNewsTrue']}，原因：{parsed['reasons']}，建议：{parsed['recommendation']}"
                     })
                 
+                logger.info(f'待更新参数列表: {update_params}')
                 if update_params:
                     await query_db.execute(
                         update(DetectionTask)
@@ -196,5 +217,6 @@ class Detection_taskService:
         
         except Exception as e:
             await query_db.rollback()
+            logger.error(f"检测任务失败：{e}")
             raise e
 

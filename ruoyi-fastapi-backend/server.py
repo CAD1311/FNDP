@@ -42,11 +42,21 @@ async def lifespan(app: FastAPI):
     await RedisUtil.init_sys_dict(app.state.redis)
     await RedisUtil.init_sys_config(app.state.redis)
     await SchedulerUtil.init_system_scheduler()
+
+
+     # 初始化并启动模型服务
+    from module_news.service.detection_task_service import Detection_taskService
+    service = Detection_taskService()
+    await service.start_service()
+    app.state.detection_service = service  # 将服务实例存储在应用状态中
+
     logger.info(f'{AppConfig.app_name}启动成功')
     yield
     await RedisUtil.close_redis_pool(app)
     await SchedulerUtil.close_system_scheduler()
 
+    if hasattr(app.state, 'detection_service'):
+        await app.state.detection_service.model.stop()
 
 # 初始化FastAPI对象
 app = FastAPI(
