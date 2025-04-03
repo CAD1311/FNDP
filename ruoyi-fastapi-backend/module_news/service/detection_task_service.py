@@ -152,29 +152,17 @@ class Detection_taskService:
     async def detection_task_start_services(self, query_db: AsyncSession, page_objects):
         try:
             async with query_db.begin():
-                news_ids = list({po.news_id for po in page_objects})
+                news_ids = [po.news_id for po in page_objects]
                 task_dict = {}
-                # 去重后的新闻列表
-                existing_news = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
-                existing_news_ids = {info.news_id for info in existing_news}
-                
-                # 批量插入检测任务
-                insert_values = [
-                    {"news_id": news_id, 
-                     **po.model_dump(exclude_unset=False, exclude=["news_id"])}
-                    for news_id in existing_news_ids
-                ]
-                
-                if insert_values:
-                    insert_result = await query_db.execute(
-                        insert(DetectionTask).values(insert_values)
+                for po in page_objects:
+                    # 逐条插入检测任务
+                    result = await query_db.execute(
+                        insert(DetectionTask).values(**po.model_dump(exclude_unset=False))
                     )
-                    # 获取批量插入的ID
-                    first_id = insert_result.inserted_primary_key[0]
-                    task_dict = {
-                        news_id: first_id + idx 
-                        for idx, news_id in enumerate(existing_news_ids)
-                    }
+                    # 获取插入后的自增ID
+                    inserted_id = result.lastrowid
+                    task_dict[po.news_id] = inserted_id
+                
                 news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
                 news_info_dict = {info.news_id: info for info in news_info_list}
                 
