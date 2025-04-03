@@ -114,58 +114,12 @@ class Qwen:
         self.executor.shutdown(wait=False)
 
     async def _process_request(self, text, path_to_image=None):
+
         """准备模型输入"""
-        if path_to_image and path_to_image.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')) :
-            logger.info("--------------------读取到视频-----------------")
-            
-            messages = [
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": system_prompt
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "video",
-                            "video": "video.mp4",
-                            "max_pixels": 360 * 420,
-                            "fps": 1.0,
-                        },
-                        {"type": "text", "text": text 
-                         },
-                    ],
-                }
-            ]
-        elif path_to_image :
-            messages = [
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": system_prompt
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "image": path_to_image,
-                        },
-                        {"type": "text", "text": text + "<image>"
-                         },
-                    ],
-                }
-            ]
-        else:
+        
+
+        if not path_to_image:
+            logger.info("--------------------没有图片-----------------")
             messages = [
                 {
                     "role": "system",
@@ -183,6 +137,116 @@ class Qwen:
                     ],
                 }
             ]
+
+        elif isinstance(path_to_image, list):
+            if len(path_to_image)==0:
+                messages = [
+                {
+                    "role": "system",
+                    "content": [
+                        {"type": "text",
+                         "text": system_prompt
+                         },
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": text
+                         },
+                    ],
+                }
+            ]
+            elif path_to_image[0].lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                messages = [
+                {
+                    "role": "system",
+                    "content": [
+                        {"type": "text", "text": system_prompt}
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "video",
+                            "video": path_to_image[0],
+                            "max_pixels": 360 * 420,
+                            "fps": 1.0,
+                        },
+                        {"type": "text", "text": text},
+                    ],
+                }
+            ]
+                
+            else:
+                logger.info(f"--------------------读取到{len(path_to_image)}张图片-----------------")
+            
+                user_content = [{"type":"text","text":text}]
+
+
+                for image in path_to_image:
+                    user_content.insert(0,{"type":"image","image":image})
+
+                
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [
+                            {"type": "text", "text": system_prompt}
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ]
+
+        elif path_to_image and not isinstance(path_to_image, list):
+            if path_to_image.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                messages = [
+                {
+                    "role": "system",
+                    "content": [
+                        {"type": "text", "text": system_prompt}
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "video",
+                            "video": path_to_image,
+                            "max_pixels": 360 * 420,
+                            "fps": 1.0,
+                        },
+                        {"type": "text", "text": text},
+                    ],
+                }
+            ]
+            else:
+                user_content = [{"type":"text","text":text}]
+
+
+                user_content.insert(0,{"type":"image","image":path_to_image})
+
+                
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [
+                            {"type": "text", "text": system_prompt}
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ]
+
+
+            
+        
 
         # 使用线程池执行CPU密集型的处理操作
         loop = asyncio.get_event_loop()
