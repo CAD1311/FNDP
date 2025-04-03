@@ -152,10 +152,29 @@ class Detection_taskService:
     async def detection_task_start_services(self, query_db: AsyncSession, page_objects):
         try:
             async with query_db.begin():
-                news_ids = [po.news_id for po in page_objects]
-                tasks_to_insert = [DetectionTask(**po.model_dump()) for po in page_objects]
-                await query_db.execute(insert(DetectionTask), [task.__dict__ for task in tasks_to_insert])
+                news_ids = list({po.news_id for po in page_objects})
+                task_dict = {}
+                # 去重后的新闻列表
+                existing_news = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
+                existing_news_ids = {info.news_id for info in existing_news}
                 
+                # 批量插入检测任务
+                insert_values = [
+                    {"news_id": news_id, 
+                     **po.model_dump(exclude_unset=False, exclude=["news_id"])}
+                    for news_id in existing_news_ids
+                ]
+                
+                if insert_values:
+                    insert_result = await query_db.execute(
+                        insert(DetectionTask).values(insert_values)
+                    )
+                    # 获取批量插入的ID
+                    first_id = insert_result.inserted_primary_key[0]
+                    task_dict = {
+                        news_id: first_id + idx 
+                        for idx, news_id in enumerate(existing_news_ids)
+                    }
                 news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
                 news_info_dict = {info.news_id: info for info in news_info_list}
                 
@@ -181,22 +200,37 @@ class Detection_taskService:
                 update_params = []
                 for task, result in zip(predict_tasks, results):
                     news_id = task[0]
-                    if isinstance(result, Exception) or \
-                       not (parsed := parse_prediction_json(result)) or \
-                       not parsed.get('IsNewsTrue') or \
-                       not parsed.get('reasons'):
+                    # 先检查是否为异常或未解析成功
+                    if isinstance(result, Exception):
+                        continue
+                    
+                    # 尝试解析结果并验证类型
+                    parsed = parse_prediction_json(result)
+                    if not isinstance(parsed, dict):
+                        logger.error(f'新闻{news_id}解析失败，结果类型错误:{type(parsed)}')
+                        continue
+                    
+                    # 验证必要字段存在且类型正确
+                    required_fields = {'IsNewsTrue': [int], 'reasons': [list, type(None)], 'recommendation': [str]}
+                    missing_or_invalid = False
+                    for field, types in required_fields.items():
+                        if field not in parsed or not isinstance(parsed[field], tuple(types)):
+                            logger.error(f'新闻{news_id}字段缺失或类型错误: {field}')
+                            missing_or_invalid = True
+                    if missing_or_invalid:
+                        continue
                         logger.error(f'新闻{news_id}解析失败，结果:{result}')
                         continue
                     
-                    # 添加字段校验
-                    required_fields = ['IsNewsTrue', 'reasons', 'recommendation']
-                    if not all(field in parsed for field in required_fields):
-                        logger.error(f'新闻{news_id}返回结果缺少必要字段: {parsed}')
+                    # 根据业务逻辑处理验证后的结果
+                    if parsed.get('IsNewsTrue') not in [0, 1]:
+                        logger.error(f'新闻{news_id}无效的IsNewsTrue值: {parsed["IsNewsTrue"]}')
                         continue
                     
                     # 字段映射
                     update_params.append({
                         "news_id": news_id,
+                        "task_id": task_dict[news_id],
                         "task_status": 1,
                         "is_true": parsed["IsNewsTrue"],
                         "task_result": f"是否真实：{parsed['IsNewsTrue']}，原因：{parsed['reasons']}，建议：{parsed['recommendation']}"
@@ -206,12 +240,15 @@ class Detection_taskService:
                 if update_params:
                     await query_db.execute(
                         update(DetectionTask)
-                        .where(DetectionTask.news_id.in_([p["news_id"] for p in update_params]))
+                        .where(DetectionTask.task_id == bindparam('task_id'))
                         .values(
+                            task_id=bindparam("task_id"),
                             task_status=bindparam("task_status"),
                             is_true=bindparam("is_true"),
                             task_result=bindparam("task_result")
                         )
+                        .execution_options(synchronize_session=None),
+                        update_params
                     )
             return CrudResponseModel(is_success=True, message="检测完成")
         

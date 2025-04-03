@@ -1,6 +1,7 @@
 import json
 import re
 
+
 def parse_prediction_json(predict_json_str):
     """
     解析预测 JSON 字符串，转换为 Python 对象
@@ -17,9 +18,9 @@ def parse_prediction_json(predict_json_str):
 
         # 提取关键字段
         result = {
-            'IsNewsTrue': prediction.get('IsNewsTrue'),
-            'reasons': prediction.get('reasons', []),
-            'recommendation': prediction.get('recommendation', '')
+            'IsNewsTrue': prediction.get('IsNewsTrue', None),
+            'reasons': prediction.get('reasons', ['暂无原因分析']),
+            'recommendation': prediction.get('recommendation', '暂无建议')
         }
 
         return result
