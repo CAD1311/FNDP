@@ -1,5 +1,22 @@
 <template>
   <div class="app-container">
+    <div v-if="showParsePanel" class="parse-panel">
+      <el-alert type="info" show-icon :closable="false">
+        <template #title>
+          <div class="alert-content">
+            <el-button 
+              type="primary" 
+              size="small"
+              :loading="isParsing"
+              @click="handleParse"
+            >
+              {{ isParsing ? '正在解析中...' : '立即解析网页内容' }}
+            </el-button>
+            <span class="tip">检测到该新闻尚无内容</span>
+          </div>
+        </template>
+      </el-alert>
+    </div>
     <!-- 新闻详情容器 -->
     <div class="news-detail">
       <!-- 标题区 -->
@@ -28,13 +45,159 @@
 
 <script setup name="News_data">
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { getNews_info } from "@/api/news/news_info";
 import { Link } from '@element-plus/icons-vue';
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { getNews_info, updateNews_info } from "@/api/news/news_info"
+import useUserStore from '@/store/modules/user'
 
 const route = useRoute();
 const newsId = ref(route.query.newsId);
 const newsDetail = ref({});
+
+const router = useRouter()
+const isParsing = ref(false)
+const userStore = useUserStore()
+
+// 显示解析面板的条件
+const showParsePanel = computed(() => {
+  return (!newsDetail.value.newsContent || newsDetail.value.newsContent === "") 
+    && newsDetail.value.url
+})
+
+// 核心解析逻辑
+const handleParse = async () => {
+  try {
+    isParsing.value = true
+    const url = newsDetail.value.url
+    
+    // 使用代理绕过CORS（需自建或使用公共代理）
+    const proxyUrl = 'https://thingproxy.freeboard.io/fetch/'
+    const response = await fetch(proxyUrl + url)
+    if (!response.ok) throw new Error('网络请求失败')
+    
+    // 获取并解析HTML
+    const html = await response.text()
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    
+    // 提取关键信息（需根据目标网站结构调整）
+    const parsedData = {
+      newsTitle: doc.querySelector('h1')?.textContent || doc.title,
+      newsContent: extractMainContent(doc),
+      userId:userStore.id,
+      //publishTime: findPublishTime(doc),
+      //platform: extractPlatform(url),
+      //hashTag: findHashtags(doc)
+    }
+
+    // 更新数据库
+    await updateNews_info({
+      newsId: newsDetail.value.newsId,
+      ...parsedData
+    })
+
+    await fetchData(); // 重新获取最新数据
+    newsDetail.value = { ...newsDetail.value }; // 触发响应式更新
+    
+  } catch (error) {
+    ElMessage.error(`解析失败: ${error.message}`)
+  } finally {
+    isParsing.value = false
+  }
+}
+
+const extractMainContent = (doc) => {
+  // 优先查找内容容器
+  const container = findContentContainer(doc);
+  if (!container) return '内容解析失败';
+
+  // 创建临时容器克隆节点
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = container.innerHTML;
+
+  // 移除所有非文本/图片的标签
+  removeNonEssentialElements(tempDiv);
+
+  // 安全处理并返回内容
+  return sanitizeContent(tempDiv.innerHTML);
+};
+
+// 修复后的内容容器查找函数
+const findContentContainer = (doc) => {
+  const candidates = ['article', '.post-content', '#content', 'main'];
+  
+  // 遍历所有候选选择器
+  for (const sel of candidates) {
+    const element = doc.querySelector(sel);
+    if (element) return element;
+  }
+  
+  return null; // 未找到任何容器
+};
+
+
+// 递归移除非必要元素
+const removeNonEssentialElements = (node) => {
+  const elements = node.querySelectorAll('*');
+  elements.forEach(el => {
+    // 保留img标签
+    if (el.tagName.toLowerCase() === 'img') {
+      // 清理img属性
+      Array.from(el.attributes).forEach(attr => {
+        if (!['src', 'alt', 'title'].includes(attr.name)) {
+          el.removeAttribute(attr.name);
+        }
+      });
+      return;
+    }
+    
+    // 处理文本容器
+    if (['p', 'div', 'span'].includes(el.tagName.toLowerCase())) {
+      // 只保留文本内容
+      const text = el.textContent.trim();
+      if (text) {
+        const textNode = document.createTextNode(text);
+        el.parentNode.replaceChild(textNode, el);
+      } else {
+        el.remove();
+      }
+    } else {
+      // 移除其他元素
+      el.parentNode.removeChild(el);
+    }
+  });
+};
+
+// 内容消毒处理
+const sanitizeContent = (html) => {
+  return html
+    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gm, '')
+    .replace(/ on\w+="[^"]*"/g, '')
+    .replace(/<p><br><\/p>/g, '')
+    .replace(/\n{3,}/g, '\n\n');
+};
+
+// 辅助方法 - 提取发布时间
+const findPublishTime = (doc) => {
+  // 常见发布时间选择器
+  const timeSelectors = [
+    'time[datetime]',
+    '.publish-time',
+    '.date',
+    'meta[property="article:published_time"]'
+  ]
+  const timeElement = timeSelectors.find(sel => doc.querySelector(sel))
+  return timeElement?.getAttribute('datetime') || new Date().toISOString()
+}
+
+// 初始化获取数据
+const fetchData = async () => {
+  const res = await getNews_info(route.query.newsId)
+  newsDetail.value = res.data
+}
+
+fetchData()
 
 // 处理图片样式
 const processedContent = computed(() => {
@@ -145,5 +308,24 @@ onMounted(() => {
     flex-direction: column;
     gap: 0.5rem;
   }
+}
+
+.parse-panel {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.alert-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.tip {
+  color: #666;
+  font-size: 14px;
 }
 </style>

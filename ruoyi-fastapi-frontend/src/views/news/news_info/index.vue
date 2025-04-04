@@ -83,9 +83,10 @@
       <el-table-column label="新闻标题" align="center" prop="newsTitle" />
       <el-table-column label="新闻内容" align="center" prop="newsContent">
         <template #default="scope">
-          <span>{{ scope.row.newsContent.slice(0, 50) }}</span>
+          <span>{{ scope.row.newsContent ? scope.row.newsContent.slice(0, 50) : '' }}</span>
         </template>
-      </el-table-column>
+      </el-table-column>s
+
       <el-table-column label="发布时间" align="center" prop="publishTime">
         <template #default="scope">
           <span>{{ parseTime(scope.row.publishTime, '{y}-{m}-{d}') }}</span>
@@ -447,11 +448,13 @@ const handleEditorImageUpload = async (file) => {
 
 const router = useRouter();
 function handleDetail(row) {
-  console.log(row.newsId);
   router.push({
     path: 'data_index',
-    query: {newsId: row.newsId}
-  });
+    query: { 
+      newsId: row.newsId,
+      t: Date.now() // 强制刷新
+    }
+  })
 }
 
 getList();
