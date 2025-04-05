@@ -264,15 +264,16 @@ class Qwen:
             messages, tokenize=False, add_generation_prompt=True
         )
         image_inputs, video_inputs = process_vision_info(messages)
-
+    
         inputs = self.processor(
             text=[text_with_messages],
             images=image_inputs,
             videos=video_inputs,
-            padding=True,
+            padding="max_length",  # 使用最大长度填充
+            max_length=4096,      # 设定最大长度
             return_tensors="pt",
         )
-
+    
         return {
             "inputs": inputs,
             "original_length": len(inputs.input_ids[0])
@@ -397,5 +398,6 @@ class Qwen:
 
         # 等待结果
         result = await future
+        print(result)
         return result
 
