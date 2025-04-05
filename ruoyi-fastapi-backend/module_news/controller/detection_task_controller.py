@@ -18,7 +18,7 @@ from utils.response_util import ResponseUtil
 from pydantic import BaseModel
 
 
-service = Detection_taskService()
+
 # 添加一个函数来获取服务实例
 def get_detection_service(request: Request) -> Detection_taskService:
     return request.app.state.detection_service
@@ -62,7 +62,6 @@ async def detect_news_news_info(
             news_info = await News_infoService.news_info_detail_services(query_db, news_id)
             if news_info:
                 add_detection_task = Detection_taskModel() 
-                
                 add_detection_task.update_by = current_user.user.user_name
                 add_detection_task.update_time = datetime.now()
                 add_detection_task.create_by = current_user.user.user_name
@@ -72,13 +71,12 @@ async def detect_news_news_info(
                 add_detection_task.news_id = news_id
                 add_detection_task.task_result = ''
                 add_detection_task.is_true = 0
-                add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
-                logger.info(add_detection_task_result.message)
+                #add_detection_task_result = await Detection_taskService.add_detection_task_services(query_db, add_detection_task)
                 add_detection_tasks.append(add_detection_task)
         
         await service.detection_task_start_services(query_db, add_detection_tasks)
 
-    return ResponseUtil.success(msg=add_detection_task_result.message)
+    return ResponseUtil.success(msg="检测完成")
 
 
 

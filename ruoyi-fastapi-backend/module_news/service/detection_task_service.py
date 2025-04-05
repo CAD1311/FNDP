@@ -74,7 +74,6 @@ class Detection_taskService:
     async def add_detection_task_services(cls, query_db: AsyncSession, page_object: Detection_taskModel):
         """
         新增新闻检测信息service
-
         :param query_db: orm对象
         :param page_object: 新增新闻检测对象
         :return: 新增新闻检测校验结果
@@ -151,93 +150,91 @@ class Detection_taskService:
 
     async def detection_task_start_services(self, query_db: AsyncSession, page_objects):
         try:
-            async with query_db.begin():
-                news_ids = [po.news_id for po in page_objects]
-                task_dict = {}
-                for po in page_objects:
-                    # 逐条插入检测任务
-                    result = await query_db.execute(
-                        insert(DetectionTask).values(**po.model_dump(exclude_unset=False))
-                    )
-                    # 获取插入后的自增ID
-                    inserted_id = result.lastrowid
-                    task_dict[po.news_id] = inserted_id
-                
-                news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
-                news_info_dict = {info.news_id: info for info in news_info_list}
-                
-                predict_tasks = []
-                for news_id in news_ids:
-                    if news_info := news_info_dict.get(news_id):
-                        base_text = self._build_base_text(news_info)
-                        predict_tasks.append((
-                            news_id,
-                            self._async_predict(base_text)
-                        ))
-                logger.info(f"预测任务：{predict_tasks}")
-                coroutines = [task[1] for task in predict_tasks]
-                results = await asyncio.gather(*coroutines, return_exceptions=True)
-                # 新增异常记录
-                for i, result in enumerate(results):
-                    if isinstance(result, Exception):
-                        logger.error(f'任务{i}异常: {str(result)}', exc_info=True)
-                    elif isinstance(result, BaseException):
-                        logger.error(f'任务{i}基础异常: {str(result)}')
-                logger.info(f"检测结果：{results}")
+            #async with query_db.begin():
+            news_ids = [po.news_id for po in page_objects]
+            task_dict = {}
+            for po in page_objects:
+                # 逐条插入检测任务
+                result = await query_db.execute(
+                    insert(DetectionTask).values(**po.model_dump(exclude_unset=False))
+                )
+                inserted_id = result.lastrowid
+                task_dict[po.news_id] = inserted_id
+                logger.info(f"新增任务：{task_dict}")
 
-                update_params = []
-                for task, result in zip(predict_tasks, results):
-                    news_id = task[0]
-                    # 先检查是否为异常或未解析成功
-                    if isinstance(result, Exception):
-                        continue
-                    
-                    # 尝试解析结果并验证类型
-                    parsed = parse_prediction_json(result)
-                    if not isinstance(parsed, dict):
-                        logger.error(f'新闻{news_id}解析失败，结果类型错误:{type(parsed)}')
-                        continue
-                    
-                    # 验证必要字段存在且类型正确
-                    required_fields = {'IsNewsTrue': [int], 'reasons': [list, type(None)], 'recommendation': [str]}
-                    missing_or_invalid = False
-                    for field, types in required_fields.items():
-                        if field not in parsed or not isinstance(parsed[field], tuple(types)):
-                            logger.error(f'新闻{news_id}字段缺失或类型错误: {field}')
-                            missing_or_invalid = True
-                    if missing_or_invalid:
-                        continue
-                        logger.error(f'新闻{news_id}解析失败，结果:{result}')
-                        continue
-                    
-                    # 根据业务逻辑处理验证后的结果
-                    if parsed.get('IsNewsTrue') not in [0, 1]:
-                        logger.error(f'新闻{news_id}无效的IsNewsTrue值: {parsed["IsNewsTrue"]}')
-                        continue
-                    
-                    # 字段映射
-                    update_params.append({
-                        "news_id": news_id,
-                        "task_id": task_dict[news_id],
-                        "task_status": 1,
-                        "is_true": parsed["IsNewsTrue"],
-                        "task_result": f"是否真实：{parsed['IsNewsTrue']}，原因：{parsed['reasons']}，建议：{parsed['recommendation']}"
-                    })
+            news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
+            news_info_dict = {info.news_id: info for info in news_info_list}
+            
+            predict_tasks = []
+            for news_id in news_ids:
+                if news_info := news_info_dict.get(news_id):
+                    base_text = self._build_base_text(news_info)
+                    predict_tasks.append((
+                        news_id,
+                        self._async_predict(base_text)
+                    ))
+            coroutines = [task[1] for task in predict_tasks]
+            results = await asyncio.gather(*coroutines, return_exceptions=True)
+            # 新增异常记录
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f'任务{i}异常: {str(result)}', exc_info=True)
+                elif isinstance(result, BaseException):
+                    logger.error(f'任务{i}基础异常: {str(result)}')
+            logger.info(f"检测结果：{results}")
+
+            update_params = []
+            for task, result in zip(predict_tasks, results):
+                news_id = task[0]
+                # 先检查是否为异常或未解析成功
+                if isinstance(result, Exception):
+                    continue
                 
-                logger.info(f'待更新参数列表: {update_params}')
-                if update_params:
-                    await query_db.execute(
-                        update(DetectionTask)
-                        .where(DetectionTask.task_id == bindparam('task_id'))
-                        .values(
-                            task_id=bindparam("task_id"),
-                            task_status=bindparam("task_status"),
-                            is_true=bindparam("is_true"),
-                            task_result=bindparam("task_result")
-                        )
-                        .execution_options(synchronize_session=None),
-                        update_params
+                # 尝试解析结果并验证类型
+                parsed = parse_prediction_json(result)
+                if not isinstance(parsed, dict):
+                    logger.error(f'新闻{news_id}解析失败，结果类型错误:{type(parsed)}')
+                    continue
+                
+                # 验证必要字段存在且类型正确
+                required_fields = {'IsNewsTrue': [int], 'reasons': [list, type(None)], 'recommendation': [str]}
+                missing_or_invalid = False
+                for field, types in required_fields.items():
+                    if field not in parsed or not isinstance(parsed[field], tuple(types)):
+                        logger.error(f'新闻{news_id}字段缺失或类型错误: {field}')
+                        missing_or_invalid = True
+                if missing_or_invalid:
+                    logger.error(f'新闻{news_id}解析失败，结果:{result}')
+                    continue
+                
+                # 根据业务逻辑处理验证后的结果
+                if parsed.get('IsNewsTrue') not in [0, 1]:
+                    logger.error(f'新闻{news_id}无效的IsNewsTrue值: {parsed["IsNewsTrue"]}')
+                    continue
+                
+                # 字段映射
+                update_params.append({
+                    "news_id": news_id,
+                    "task_id": task_dict[news_id],
+                    "task_status": 1,
+                    "is_true": parsed["IsNewsTrue"],
+                    "task_result": f"是否真实：{parsed['IsNewsTrue']}，原因：{parsed['reasons']}，建议：{parsed['recommendation']}"
+                })
+            
+            if update_params:
+                await query_db.execute(
+                    update(DetectionTask)
+                    .where(DetectionTask.task_id == bindparam('task_id'))
+                    .values(
+                        task_id=bindparam("task_id"),
+                        task_status=bindparam("task_status"),
+                        is_true=bindparam("is_true"),
+                        task_result=bindparam("task_result")
                     )
+                    .execution_options(synchronize_session=None),
+                    update_params
+                )
+                await query_db.commit()
             return CrudResponseModel(is_success=True, message="检测完成")
         
         except Exception as e:
