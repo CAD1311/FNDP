@@ -85,7 +85,7 @@
         <template #default="scope">
           <span>{{ scope.row.newsContent ? scope.row.newsContent.slice(0, 50) : '' }}</span>
         </template>
-      </el-table-column>s
+      </el-table-column>
 
       <el-table-column label="发布时间" align="center" prop="publishTime">
         <template #default="scope">
@@ -384,9 +384,9 @@ function handleCheck(row) {
     console.log("准备检测");
     checkNews_info(_newsIds).then(response => {
         console.log(response);
+        getList();
     });
   }).then(() => {
-    getList();
     proxy.$modal.msgSuccess("正在检测");
   }).catch(() => {});
 }
