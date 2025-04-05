@@ -18,7 +18,7 @@ from utils.response_util import ResponseUtil
 from pydantic import BaseModel
 
 
-service = Detection_taskService()
+
 # 添加一个函数来获取服务实例
 def get_detection_service(request: Request) -> Detection_taskService:
     return request.app.state.detection_service
