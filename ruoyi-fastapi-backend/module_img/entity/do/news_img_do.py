@@ -1,10 +1,10 @@
-from sqlalchemy import Text, String, Column, BigInteger, DateTime
+from sqlalchemy import Text, DateTime, String, Column, BigInteger
 from config.database import Base
 
 
 class NewsImg(Base):
     """
-    news_img表
+    新闻图片表
     """
 
     __tablename__ = 'news_img'
