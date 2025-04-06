@@ -85,7 +85,7 @@
         <template #default="scope">
           <span>{{ scope.row.newsContent ? scope.row.newsContent.slice(0, 50) : '' }}</span>
         </template>
-      </el-table-column>s
+      </el-table-column>
 
       <el-table-column label="发布时间" align="center" prop="publishTime">
         <template #default="scope">
@@ -230,15 +230,16 @@ function getList() {
     total.value = response.total;
     loading.value = false;
 
-    getStatusList();
-
   });
+  console.log("查询新闻信息列表：",queryParams.value);
+  getStatusList();
 }
 
 // 获取新闻检测结果信息
 function getStatusList() {
+  
   //获取检测任务表
-  listDetection_task().then(response => {
+  listDetection_task({pageSize: 10000}).then(response => {
     detection_taskList.value = response.rows;
     console.log("获取检测任务表：",detection_taskList.value);
     //从检测任务表中获取新闻id对应的状态信息
@@ -384,9 +385,9 @@ function handleCheck(row) {
     console.log("准备检测");
     checkNews_info(_newsIds).then(response => {
         console.log(response);
+        getList();
     });
   }).then(() => {
-    getList();
     proxy.$modal.msgSuccess("正在检测");
   }).catch(() => {});
 }

@@ -107,20 +107,16 @@
     router.push('input') // 替换为你的实际路由路径
   }
   const goToModule2 = () => {
-    router.push('tool/img') // 替换为你的实际路由路径
+    router.push('news_img') // 替换为你的实际路由路径
   }
   const goToModule3 = () => {
     router.push('report') // 替换为你的实际路由路径
   }
   
   const currentUser = {
-    avatar: "https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png",
+    avatar: userStore.avatar,
     name: userStore.name,
     userid: userStore.id,
-    email: "antdesign@alipay.com",
-    signature: "海纳百川，有容乃大",
-    title: "交互专家",
-    group: "蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED",
   };
   
   </script>
