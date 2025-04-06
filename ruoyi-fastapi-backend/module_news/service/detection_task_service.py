@@ -5,7 +5,7 @@ from exceptions.exception import ServiceException
 from module_admin.entity.vo.common_vo import CrudResponseModel
 from module_news.dao.detection_task_dao import Detection_taskDao
 from module_news.dao.news_info_dao import News_infoDao
-from module_news.entity.vo.news_info_vo import News_infoModel
+from module_img.dao.news_img_dao import News_imgDao
 from module_news.entity.vo.detection_task_vo import DeleteDetection_taskModel, Detection_taskModel, \
     Detection_taskPageQueryModel
 from utils.common_util import CamelCaseUtil
@@ -15,7 +15,7 @@ from utils.mock_qwen import Qwen
 from utils.rag import VectorStore,RAG
 from utils.parse_prediction_json import parse_prediction_json
 from module_news.dao.detection_task_dao import DetectionTask
-from sqlalchemy import delete, select, update,insert, bindparam
+from sqlalchemy import update,insert, bindparam
 import logging
 
 model_cache_dir = "../models"
@@ -50,9 +50,9 @@ class Detection_taskService:
             f"属于{news_info.hash_tag}类别。"
         )
 
-    async def _async_predict(self, text: str):
+    async def _async_predict(self, text: str,img):
         """将同步预测转为异步执行[[7]][[9]]"""
-        return await self.model.predict(text)
+        return await self.model.predict(text,img)
 
     @classmethod
     async def get_detection_task_list_services(
@@ -163,15 +163,18 @@ class Detection_taskService:
                 logger.info(f"新增任务：{task_dict}")
 
             news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
+            news_img_list = await News_imgDao.get_news_img_by_ids(query_db, news_ids)
             news_info_dict = {info.news_id: info for info in news_info_list}
+            news_img_dict = {img.news_id: img for img in news_img_list}
             
             predict_tasks = []
             for news_id in news_ids:
                 if news_info := news_info_dict.get(news_id):
                     base_text = self._build_base_text(news_info)
+                    news_img = news_img_dict.get(news_id)
                     predict_tasks.append((
                         news_id,
-                        self._async_predict(base_text)
+                        self._async_predict(base_text,news_img)
                     ))
             coroutines = [task[1] for task in predict_tasks]
             results = await asyncio.gather(*coroutines, return_exceptions=True)
