@@ -11,7 +11,7 @@ import zipfile
 from config.env import UploadConfig
 from CommonService.upload_service import upload_service
 import csv
-
+import easyocr
 
 async def add_news(
     db_session: AsyncSession,
@@ -302,5 +302,18 @@ async def csv_extract(path_to_file: str, db_session: AsyncSession, user_id: int)
 
 
 
+async def ocr_extract(path_to_file: str, db_session: AsyncSession, user_id: int):
+    reader=easyocr.Reader(['ch_sim','en'])
+    results=reader.readtext(path_to_file)
+    text_content = "\n".join([result[1] for result in results])
+    file_name = os.path.basename(path_to_file)
 
-async def ocr_extract(path_to_file: str, db_session: AsyncSession, user_id: int)
+    await add_news(
+        db_session=db_session,
+        title=file_name,
+        content=text_content,
+        user_id=user_id
+    )
+
+    return
+
