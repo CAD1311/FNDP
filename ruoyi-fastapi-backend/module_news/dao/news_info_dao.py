@@ -56,7 +56,7 @@ class News_infoDao:
         redis: aioredis.Redis = None
     ) -> list[NewsInfo]:
         """
-        批量获取新闻信息（优先使用 Redis 缓存）[[1]][[8]]
+        批量获取新闻信息（优先使用 Redis 缓存）
         """
         if not redis:
             return await cls._get_news_info_by_ids_db(db, news_ids)
