@@ -113,3 +113,12 @@ async def export_detection_detection_task_list(
     logger.info('导出成功')
 
     return ResponseUtil.streaming(data=bytes2file_response(detection_task_export_result))
+
+
+@detection_taskController.post('/quick')
+@Log(title='快速检测', business_type=BusinessType.OTHER)
+async def quick_detect_news_news_info(
+    text: str,
+    service: Detection_taskService = Depends(get_detection_service),
+):
+    return service.quick_start_services(text)

@@ -245,3 +245,12 @@ class Detection_taskService:
             logger.error(f"检测任务失败：{e}")
             raise e
 
+async def quick_start_services(self, text:str):
+    """
+    快速检测新闻文本
+    :param text: 新闻文本
+    :return: 新闻检测结果
+    """
+    result = await self.model.predict(text)
+    parsed = parse_prediction_json(result)
+    return parsed
