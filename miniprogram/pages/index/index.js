@@ -54,6 +54,17 @@ Page({
         if (res.data.success && res.data.data) {
           this.setData({
             result: res.data.data
+          }, () => {
+            // 检测成功后自动保存到历史记录
+            const history = wx.getStorageSync('newsHistory') || [];
+            const newRecord = {
+              text: this.data.inputText,
+              result: this.data.result,
+              timestamp: new Date().getTime()
+            };
+            
+            history.unshift(newRecord);
+            wx.setStorageSync('newsHistory', history);
           });
         } else {
           wx.showToast({
