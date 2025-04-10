@@ -3,6 +3,7 @@ from module_admin.service.common_service import CommonService
 from module_admin.service.login_service import LoginService
 from utils.log_util import logger
 from utils.response_util import ResponseUtil
+from module_news.service.detection_task_service import Detection_taskService
 
 commonController = APIRouter(prefix='/common', dependencies=[Depends(LoginService.get_current_user)])
 
@@ -34,3 +35,7 @@ async def common_download_resource(request: Request, resource: str = Query()):
     logger.info(download_resource_result.message)
 
     return ResponseUtil.streaming(data=download_resource_result.result)
+
+
+
+
