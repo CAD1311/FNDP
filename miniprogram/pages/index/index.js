@@ -37,7 +37,7 @@ Page({
 
     // 根据环境使用不同的 API 地址
     const apiUrl = this.data.isDev 
-      ? 'http://127.0.0.1:9099/detection/detection_task/quick'
+      ? 'http://127.0.0.1:9099/quick/detection'
       : 'https://your-domain.com/detection/detection_task/quick';  // 这里替换为您的生产环境域名
 
     wx.request({
@@ -47,12 +47,20 @@ Page({
         'content-type': 'application/json'
       },
       data: {
-        text: this.data.inputText
+        "text": this.data.inputText
       },
       success: (res) => {
-        this.setData({
-          result: res.data
-        });
+        console.log('API返回数据：', res.data);
+        if (res.data.success && res.data.data) {
+          this.setData({
+            result: res.data.data
+          });
+        } else {
+          wx.showToast({
+            title: res.data.msg || '请求失败',
+            icon: 'none'
+          });
+        }
       },
       fail: (err) => {
         console.error('请求失败：', err);
