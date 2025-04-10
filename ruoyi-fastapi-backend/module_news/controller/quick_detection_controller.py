@@ -18,4 +18,5 @@ async def quick_detect_news_news_info(
     service: Detection_taskService = Depends(get_detection_service),
 ):
     text = params.text
-    return service.quick_start_services(text)
+    result = await service.quick_start_services(text)
+    return ResponseUtil.success(data=result)
