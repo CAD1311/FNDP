@@ -265,10 +265,9 @@ function getList() {
     news_infoList.value = response.rows;
     total.value = response.total;
     loading.value = false;
-
+    getStatusList();
   });
   console.log("查询新闻信息列表：",queryParams.value);
-  getStatusList();
 }
 
 // 获取新闻检测结果信息
@@ -278,6 +277,10 @@ function getStatusList() {
   listDetection_task({pageSize: 10000}).then(response => {
     detection_taskList.value = response.rows;
     console.log("获取检测任务表：",detection_taskList.value);
+
+    // 按照 publishTime 进行降序排序 [1][2][5]
+    detection_taskList.value.sort((t1, t2) => new Date(t2.updateTime) - new Date(t1.updateTime));
+
     //从检测任务表中获取新闻id对应的状态信息
     let newsIdList = news_infoList.value.map(item => item.newsId);
     statusList.value = detection_taskList.value.filter(item => newsIdList.includes(item.newsId));
@@ -286,6 +289,7 @@ function getStatusList() {
     mapStatusToNews();
   });
 }
+
 
 // 映射新闻的状态
 function mapStatusToNews() {
