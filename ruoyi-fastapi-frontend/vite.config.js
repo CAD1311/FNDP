@@ -28,6 +28,7 @@ export default defineConfig(({ mode, command }) => {
       port: 80,
       host: true,
       open: true,
+      allowedHosts: ['www.tatobamail.top'],
       proxy: {
         // https://cn.vitejs.dev/config/#server-proxy
         '/dev-api': {
@@ -35,6 +36,7 @@ export default defineConfig(({ mode, command }) => {
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/dev-api/, '')
         }
+        
       }
     },
     //fix:error:stdin>:7356:1: warning: "@charset" must be the first rule in the file

@@ -129,9 +129,43 @@
       @pagination="getList"
     />
 
-    <el-dialog title="批量上传新闻" v-model="batchUploadOpen" width="800px" append-to-body>
-      <UploadFile @success="handleUploadSuccess" />
-    </el-dialog>
+    <!-- 修改后的el-dialog部分 -->
+<el-dialog title="批量上传新闻" v-model="batchUploadOpen" width="800px" append-to-body>
+  <el-upload
+    class="upload-demo"
+    drag
+    :auto-upload="false"
+    :accept="'.csv'"
+    :show-file-list="false"
+    :on-change="handleFileChange"
+  >
+    <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+    <div class="el-upload__text">
+      将CSV文件拖到此处或<em>点击上传</em>
+    </div>
+    <template #tip>
+      <div class="el-upload__tip">
+        要求：CSV文件必须包含以下列（可空）：news_content, news_title, publish_time, platform, hash_tag, url
+      </div>
+      <div v-if="csvFile" class="file-info">
+        已选文件：{{ csvFile.name }}
+        <el-button type="primary" size="small" @click="handleUpload">开始上传</el-button>
+      </div>
+      <div v-if="uploadProgress.visible" class="progress-container">
+        <el-progress 
+          :percentage="uploadProgress.percent" 
+          :status="uploadProgress.status"
+          :stroke-width="18"
+          striped
+        />
+        <div class="progress-text">
+          已处理 {{ uploadProgress.processed }} / {{ uploadProgress.total }} 条
+          <span v-if="uploadProgress.errors.length">（{{ uploadProgress.errors.length }} 条失败）</span>
+        </div>
+      </div>
+    </template>
+  </el-upload>
+</el-dialog>
 
     <!-- 添加或修改新闻信息对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
@@ -181,6 +215,8 @@ import {listDetection_task,getDetection_task,addDetection_task,updateDetection_t
 import useUserStore from '@/store/modules/user'
 import { useRouter } from 'vue-router';
 import { ref, toRaw, reactive, getCurrentInstance } from 'vue'
+import { ElMessage } from 'element-plus'
+import { read, utils } from 'xlsx'
 import UploadFile from '@/components/FileUpload/index.vue'
 
 const userStore = useUserStore()
@@ -188,7 +224,7 @@ const userStore = useUserStore()
 const { proxy } = getCurrentInstance();
 
 const news_infoList = ref([]);
-const detection_taskList = ref([]) ;
+const detection_taskList = ref([]) ;``
 let statusList = ref([]); // 新增：用于存储新闻的检测结果信息
 const open = ref(false);
 const batchUploadOpen = ref(false);
@@ -458,5 +494,147 @@ function handleDetail(row) {
   })
 }
 
+
+
+// 新增响应式数据
+const csvFile = ref(null)
+const uploadProgress = reactive({
+  visible: false,
+  percent: 0,
+  processed: 0,
+  total: 0,
+  errors: [],
+  status: ''
+})
+
+// 处理文件选择
+const handleFileChange = (file) => {
+  if (file.raw.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+    ElMessage.error('只能上传CSV文件')
+    return false
+  }
+  csvFile.value = file.raw
+}
+
+// CSV列验证
+const validateCSVColumns = (headers) => {
+  //const requiredColumns = [
+  //  'news_content',
+  //  'news_title', 
+  //  'publish_time',
+  //  'platform',
+  //  'hash_tag',
+  //  'url'
+  //]
+  //return requiredColumns.every(col => headers.includes(col))
+  return true;
+}
+
+// 转换字段名格式（蛇形转驼峰）
+const transformFieldNames = (item) => {
+  return {
+    newsContent: item.news_content || '',
+    newsTitle: item.news_title || '',
+    publishTime: item.publish_time || null,
+    platform: item.platform || '',
+    hashTag: item.hash_tag || '',
+    url: item.url || '',
+    userId: userStore.id
+  }
+}
+
+// 处理上传
+const handleUpload = async () => {
+  if (!csvFile.value) {
+    ElMessage.warning('请先选择CSV文件')
+    return
+  }
+
+  // 初始化进度
+  Object.assign(uploadProgress, {
+    visible: true,
+    percent: 0,
+    processed: 0,
+    total: 0,
+    errors: [],
+    status: ''
+  })
+
+  try {
+    // 读取CSV文件
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result)
+      const workbook = read(data, { type: 'array' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = utils.sheet_to_json(worksheet)
+      
+      // 验证列头
+      const headers = Object.keys(jsonData[0] || {})
+      if (!validateCSVColumns(headers)) {
+        ElMessage.error('CSV文件列头不符合要求')
+        return
+      }
+
+      uploadProgress.total = jsonData.length
+
+      // 逐条处理
+      for (const [index, item] of jsonData.entries()) {
+        try {
+          const params = transformFieldNames(item)
+          await addNews_info(params)
+          uploadProgress.processed = index + 1
+          uploadProgress.percent = Math.round(((index + 1) / jsonData.length) * 100)
+        } catch (error) {
+          console.error(`第 ${index + 1} 行数据上传失败:`, error)
+          uploadProgress.errors.push({
+            line: index + 1,
+            error: error.message || '未知错误'
+          })
+        }
+      }
+
+      // 处理完成
+      if (uploadProgress.errors.length === 0) {
+        uploadProgress.status = 'success'
+        ElMessage.success(`成功上传 ${jsonData.length} 条数据`)
+        handleUploadSuccess()
+      } else {
+        uploadProgress.status = 'exception'
+        ElMessage.warning(`上传完成，成功 ${jsonData.length - uploadProgress.errors.length} 条，失败 ${uploadProgress.errors.length} 条`)
+      }
+    }
+    reader.readAsArrayBuffer(csvFile.value)
+  } catch (error) {
+    console.error('文件解析失败:', error)
+    ElMessage.error('文件解析失败，请检查文件格式')
+    uploadProgress.status = 'exception'
+  }
+}
+
 getList();
 </script>
+
+<style scoped>
+.file-info {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.progress-container {
+  margin-top: 20px;
+}
+
+.progress-text {
+  margin-top: 10px;
+  text-align: center;
+  color: #606266;
+  font-size: 14px;
+}
+
+:deep(.el-progress-bar__inner) {
+  transition: width 0.3s ease;
+}
+</style>
