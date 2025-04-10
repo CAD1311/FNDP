@@ -1,0 +1,25 @@
+<view class="container">
+  <view class="input-section">
+    <textarea class="input-area" placeholder="请输入需要检测的新闻内容" bindinput="onInputChange" value="{{inputText}}"></textarea>
+    <button class="detect-btn" bindtap="detectNews">开始检测</button>
+  </view>
+
+  <view class="result-section" wx:if="{{result}}">
+    <view class="result-item">
+      <text class="label">检测结果：</text>
+      <text class="value {{result.IsNewsTrue ? 'true' : 'false'}}">{{result.IsNewsTrue ? '真实新闻' : '虚假新闻'}}</text>
+    </view>
+    
+    <view class="result-item">
+      <text class="label">原因分析：</text>
+      <text class="value">{{result.reasons}}</text>
+    </view>
+
+    <view class="result-item">
+      <text class="label">建议：</text>
+      <text class="value">{{result.recommendation}}</text>
+    </view>
+
+    <button class="save-btn" bindtap="saveToHistory">保存结果</button>
+  </view>
+</view> 

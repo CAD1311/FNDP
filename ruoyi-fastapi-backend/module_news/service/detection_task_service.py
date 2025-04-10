@@ -176,6 +176,7 @@ class Detection_taskService:
                         news_id,
                         self._async_predict(base_text,news_img)
                     ))
+                    
             coroutines = [task[1] for task in predict_tasks]
             results = await asyncio.gather(*coroutines, return_exceptions=True)
             # 新增异常记录
@@ -244,6 +245,16 @@ class Detection_taskService:
             await query_db.rollback()
             logger.error(f"检测任务失败：{e}")
             raise e
+        
+    async def quick_start_services(self, text:str):
+        """
+        快速检测新闻文本
+        :param text: 新闻文本
+        :return: 新闻检测结果
+        """
+        result = await self.model.predict(text)
+        parsed = parse_prediction_json(result)
+        return parsed
 
 async def quick_start_services(self, text:str):
     """

@@ -28,6 +28,7 @@ from module_news.controller.detection_task_controller import detection_taskContr
 from module_news.controller.refutation_controller import news_refuteController
 from module_img.controller.news_img_controller import news_imgController
 from module_video.controller.news_video_controller import news_videoController
+from module_news.controller.quick_detection_controller import quick_detectionController
 from sub_applications.handle import handle_sub_applications
 from utils.common_util import worship
 from utils.log_util import logger
@@ -99,6 +100,7 @@ controller_list = [
     {'router': news_refuteController, 'tags': ['新闻模块-新闻辟谣']},
     {'router':news_imgController,'tags':['新闻模块-图片管理']},
     {'router':news_videoController,'tags':['新闻模块-视频管理']}
+    ,{'router':quick_detectionController,'tags':['快速检测']}
 ]
 
 for controller in controller_list:
