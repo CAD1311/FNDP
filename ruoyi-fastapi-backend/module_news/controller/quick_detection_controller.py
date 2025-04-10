@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends,  Request
 from module_news.service.detection_task_service import Detection_taskService
-
+from pydantic import BaseModel
 
 
 quick_detectionController = APIRouter(prefix='/quick', dependencies=[])
