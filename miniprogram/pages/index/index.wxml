@@ -1,25 +1,45 @@
 <view class="container">
-  <view class="input-section">
-    <textarea class="input-area" placeholder="请输入需要检测的新闻内容" bindinput="onInputChange" value="{{inputText}}"></textarea>
-    <button class="detect-btn" bindtap="detectNews">开始检测</button>
+  <view class="header">
+    <text class="title">新闻真伪检测</text>
+    <text class="subtitle">AI智能分析，快速识别新闻真伪</text>
   </view>
 
-  <view class="result-section" wx:if="{{result}}">
-    <view class="result-item">
-      <text class="label">检测结果：</text>
-      <text class="value {{result.IsNewsTrue ? 'true' : 'false'}}">{{result.IsNewsTrue ? '真实新闻' : '虚假新闻'}}</text>
+  <view class="input-section">
+    <view class="input-wrapper">
+      <textarea class="input-area" placeholder="请输入需要检测的新闻内容..." bindinput="onInputChange" value="{{inputText}}"></textarea>
+      <view class="word-count">{{inputText.length || 0}}/500</view>
+    </view>
+    <button class="detect-btn" bindtap="detectNews">
+      <text class="btn-text">开始检测</text>
+    </button>
+  </view>
+
+  <view class="result-section {{result ? 'show' : ''}}" wx:if="{{result}}">
+    <view class="result-header">
+      <view class="result-status {{result.IsNewsTrue ? 'true' : 'false'}}">
+        <text class="status-text">{{result.IsNewsTrue ? '真实新闻' : '虚假新闻'}}</text>
+      </view>
     </view>
     
-    <view class="result-item">
-      <text class="label">原因分析：</text>
-      <text class="value">{{result.reasons}}</text>
-    </view>
+    <view class="result-content">
+      <view class="result-item">
+        <view class="item-header">
+          <text class="label">原因分析</text>
+        </view>
+        <view class="reasons-list">
+          <view class="reason-item" wx:for="{{result.reasons}}" wx:key="index">
+            <text class="bullet">•</text>
+            <text class="reason-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
 
-    <view class="result-item">
-      <text class="label">建议：</text>
-      <text class="value">{{result.recommendation}}</text>
+      <view class="result-item">
+        <view class="item-header">
+          <text class="label">建议</text>
+        </view>
+        <text class="value recommendation">{{result.recommendation}}</text>
+      </view>
     </view>
-
-    <button class="save-btn" bindtap="saveToHistory">保存结果</button>
   </view>
 </view> 
