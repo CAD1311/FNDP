@@ -273,12 +273,12 @@ const parseTaskResult = (result) => {
 // 获取新闻检测结果信息
 function fetchDetectionData() {
   //获取检测任务表
-  listDetection_task().then(response => {
+  listDetection_task({pageSize: 10000}).then(response => {
     
     let res = response.rows;
     //console.log("获取检测任务表：",res);
     //获取该newsId的新闻检测结果信息
-    for(let i=0;i<res.length;i++){
+    for(let i=res.length - 1;i>=0;i--){
       if(res[i].newsId == newsId.value){
         detectionData.value = parseTaskResult(res[i].taskResult);
         //detectionData.value = res[i].taskResult;
