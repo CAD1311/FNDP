@@ -3,7 +3,45 @@ Page({
     inputText: '',
     result: null,
     // 开发环境使用 http，生产环境需要使用 https
-    isDev: true  // 上线前记得改为 false
+    isDev: true,  // 上线前记得改为 false
+    showTutorial: false,
+    currentTutorialStep: 0,
+    tutorialTips: [
+      '在这里输入新闻内容',
+      '点击开始检测',
+      '查看检测结果'
+    ],
+    highlightStyle: ''  // 添加高亮框样式数据
+  },
+
+  onLoad() {
+    // 检查是否是首次访问
+    const hasShownTutorial = wx.getStorageSync('hasShownTutorial');
+    if (!hasShownTutorial) {
+      this.startTutorial();
+    }
+  },
+
+  startTutorial() {
+    this.setData({
+      showTutorial: true,
+      currentTutorialStep: 1
+    });
+  },
+
+  nextTutorialStep() {
+    const { currentTutorialStep } = this.data;
+    if (currentTutorialStep >= 3) {
+      this.setData({
+        showTutorial: false,
+        currentTutorialStep: 0
+      });
+      wx.setStorageSync('hasShownTutorial', true);
+    } else {
+      this.setData({
+        currentTutorialStep: currentTutorialStep + 1
+      });
+    }
   },
 
   onInputChange(e) {
