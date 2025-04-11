@@ -6,6 +6,8 @@ from module_admin.entity.vo.common_vo import CrudResponseModel
 from module_news.dao.detection_task_dao import Detection_taskDao
 from module_news.dao.news_info_dao import News_infoDao
 from module_img.dao.news_img_dao import News_imgDao
+from module_video.dao.news_video_dao import News_videoDao
+from module_video.dao.news_video_dao import Video_infoDao
 from module_news.entity.vo.detection_task_vo import DeleteDetection_taskModel, Detection_taskModel, \
     Detection_taskPageQueryModel
 from utils.common_util import CamelCaseUtil
@@ -162,19 +164,24 @@ class Detection_taskService:
                 task_dict[po.news_id] = inserted_id
                 logger.info(f"新增任务：{task_dict}")
 
+            #获取新闻信息和图片
             news_info_list = await News_infoDao.get_news_info_by_ids(query_db, news_ids)
             news_img_list = await News_imgDao.get_news_img_by_ids(query_db, news_ids)
+            news_video_list = await News_videoDao.get_news_video_by_ids(query_db, news_ids)
             news_info_dict = {info.news_id: info for info in news_info_list}
             news_img_dict = {img.news_id: img for img in news_img_list}
+            news_video_dict = {video.news_id: video for video in news_video_list}
             
+            #创建消息队列
             predict_tasks = []
             for news_id in news_ids:
                 if news_info := news_info_dict.get(news_id):
                     base_text = self._build_base_text(news_info)
                     news_img = news_img_dict.get(news_id)
+                    news_video = news_video_dict.get(news_id)
                     predict_tasks.append((
                         news_id,
-                        self._async_predict(base_text,news_img)
+                        self._async_predict(base_text,news_img+news_video)
                     ))
                     
             coroutines = [task[1] for task in predict_tasks]
@@ -255,13 +262,3 @@ class Detection_taskService:
         result = await self.model.predict(text)
         parsed = parse_prediction_json(result)
         return parsed
-
-async def quick_start_services(self, text:str):
-    """
-    快速检测新闻文本
-    :param text: 新闻文本
-    :return: 新闻检测结果
-    """
-    result = await self.model.predict(text)
-    parsed = parse_prediction_json(result)
-    return parsed
