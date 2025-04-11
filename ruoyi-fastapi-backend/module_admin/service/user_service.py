@@ -164,6 +164,9 @@ class UserService:
             try:
                 add_result = await UserDao.add_user_dao(query_db, add_user)
                 user_id = add_result.user_id
+                # 为用户自动分配“普通用户”角色
+                normal_user_role_id = 2  # 假设“普通用户”角色的ID为2
+                await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=user_id, roleId=normal_user_role_id))
                 if page_object.role_ids:
                     for role in page_object.role_ids:
                         await UserDao.add_user_role_dao(query_db, UserRoleModel(userId=user_id, roleId=role))

@@ -156,50 +156,65 @@ getCode();
 
 <style lang='scss' scoped>
 .register {
+  // 修改为与 login.vue 类似的布局
   display: flex;
-  justify-content: center;
+  justify-content: flex-end; 
   align-items: center;
-  height: 100%;
+  height: 100vh;
+  padding-right: 8%;
   background-image: url("../assets/images/login-background.jpg");
   background-size: cover;
+  background-position: center;
+  position: relative;
 }
+
 .title {
-  margin: 0px auto 30px auto;
+  margin: 0 0 30px 0;
   text-align: center;
   color: #707070;
+  font-size: 24px;
+  padding-right: 10px;
 }
 
 .register-form {
-  border-radius: 6px;
+  border-radius: 8px;
   background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
+  width: 420px;
+  padding: 30px 35px 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  margin-right: 40px;
+  
   .el-input {
-    height: 40px;
+    height: 42px;
     input {
-      height: 40px;
+      height: 42px;
+      font-size: 15px;
     }
   }
   .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
+    height: 41px;
+    width: 16px;
+    margin-left: 2px;
   }
 }
+
 .register-tip {
   font-size: 13px;
   text-align: center;
   color: #bfbfbf;
 }
+
 .register-code {
   width: 33%;
-  height: 40px;
+  height: 42px;
   float: right;
   img {
     cursor: pointer;
     vertical-align: middle;
+    height: 42px;
   }
 }
+
 .el-register-footer {
   height: 40px;
   line-height: 40px;
@@ -211,9 +226,50 @@ getCode();
   font-family: Arial;
   font-size: 12px;
   letter-spacing: 1px;
+  background: rgba(0, 0, 0, 0.4);
 }
+
 .register-code-img {
-  height: 40px;
+  height: 42px;
   padding-left: 12px;
+}
+
+@media screen and (max-width: 768px) {
+  .register {
+    justify-content: center;
+    padding: 0 15px;
+    background-position: 65%;
+  }
+  
+  .register-form {
+    width: 100%;
+    margin: 0;
+    padding: 25px 20px;
+  }
+  
+  .title {
+    text-align: center;
+    padding-right: 0;
+    font-size: 22px;
+  }
+  
+  .el-register-footer {
+    font-size: 11px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .register-form {
+    padding: 20px 15px;
+    
+    .el-input input {
+      font-size: 14px;
+    }
+  }
+  
+  .title {
+    font-size: 20px;
+    margin-bottom: 25px;
+  }
 }
 </style>

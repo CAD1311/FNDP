@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 400px;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #result {
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .result-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .result-section {
+            margin: 10px 0;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+
+        .reason-item {
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #fff;
+            border-left: 3px solid #2196F3;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .recommendation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+
+        .true-news {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .false-news {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="detectButton">获取页面内容并检测</button>
+    <div id="result"></div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

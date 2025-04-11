@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Text Detection Extension",
+  "version": "1.0",
+  "description": "Detect text content from current webpage",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:9099/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+} 
