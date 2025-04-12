@@ -181,7 +181,7 @@ class Detection_taskService:
                     news_video = news_video_dict.get(news_id)
                     input_data = ""
                     if news_img and news_video:
-                        input_data = news_img+","+news_video
+                        input_data = news_video+","+news_img
                     elif news_img:
                         input_data = news_img
                     elif news_video:
