@@ -169,8 +169,8 @@ class Detection_taskService:
             news_img_list = await News_imgDao.get_news_img_by_ids(query_db, news_ids)
             news_video_list = await News_videoDao.get_news_video_by_ids(query_db, news_ids)
             news_info_dict = {info.news_id: info for info in news_info_list}
-            news_img_dict = {img.news_id: img for img in news_img_list}
-            news_video_dict = {video.news_id: video for video in news_video_list}
+            news_img_dict = {img.news_id: img.img_data for img in news_img_list}
+            news_video_dict = {video.news_id: video.video_data for video in news_video_list}
             
             #创建消息队列
             predict_tasks = []
