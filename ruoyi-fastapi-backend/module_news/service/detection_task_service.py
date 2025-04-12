@@ -179,9 +179,16 @@ class Detection_taskService:
                     base_text = self._build_base_text(news_info)
                     news_img = news_img_dict.get(news_id)
                     news_video = news_video_dict.get(news_id)
+                    input_data = ""
+                    if news_img and news_video:
+                        input_data = news_img+","+news_video
+                    elif news_img:
+                        input_data = news_img
+                    elif news_video:
+                        input_data = news_video
                     predict_tasks.append((
                         news_id,
-                        self._async_predict(base_text,news_img+news_video)
+                        self._async_predict(base_text,input_data)
                     ))
                     
             coroutines = [task[1] for task in predict_tasks]
