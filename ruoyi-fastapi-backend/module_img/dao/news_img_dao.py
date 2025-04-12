@@ -149,7 +149,7 @@ class News_imgDao:
     @classmethod
     async def _get_news_img_by_ids_db(cls, db: AsyncSession, img_ids: list[int]):
         """数据库批量查询实现"""
-        result = await db.execute(select(NewsImg).where(NewsImg.img_id.in_(img_ids)))
+        result = await db.execute(select(NewsImg).where(NewsImg.news_id.in_(img_ids)))
         return result.scalars().all()
 
     @classmethod
