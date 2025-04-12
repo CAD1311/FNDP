@@ -41,11 +41,29 @@ system_prompt='''
 
                                 对于极短文本（少于100字），如无法充分分析，请基于有限信息做出最佳判断，并在理由中说明判断依据和局限性。
                             '''
+def convert_file_path(original_path):
+
+    if not original_path or not isinstance(original_path, str):
+        return ""
+    
+    if original_path.startswith('/'):
+        original_path = original_path[1:]
+
+    parts = original_path.split('/')
+    
+    try:
+        upload_index = parts.index('upload')
+        upload_path = '/'.join(parts[upload_index:])
+        new_path = f"vf_admin/upload_path/{upload_path}"
+        return new_path
+    except ValueError:
+        return f"vf_admin/upload_path/{original_path}"
+    
 
 
 
 class Qwen:
-    def __init__(self, max_batch_size=4, max_concurrent_requests=8) -> None:
+    def __init__(self, max_batch_size=24, max_concurrent_requests=8) -> None:
         """
         初始化异步 Qwen 模型
 
@@ -114,6 +132,7 @@ class Qwen:
         self.executor.shutdown(wait=False)
 
     async def _process_request(self, text, path_to_image=None):
+        logger.info(path_to_image)
 
         """准备模型输入"""
 
@@ -141,8 +160,11 @@ class Qwen:
 
         else:
             path_to_image_list=path_to_image.split(',')
+            path_to_image_list = [convert_file_path(image) for image in path_to_image_list]
 
             if not path_to_image_list or path_to_image_list[0] == '':
+                logger.info("--------------------没有图片-----------------")
+                
                 messages = [
                 {
                     "role": "system",
@@ -161,6 +183,7 @@ class Qwen:
                 }
             ]
             elif path_to_image_list[0].lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                logger.info("----------------------------------------视频--------------------------------------------")
                 messages = [
                 {
                     "role": "system",
