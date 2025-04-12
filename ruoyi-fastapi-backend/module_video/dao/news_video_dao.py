@@ -75,7 +75,7 @@ class News_videoDao:
     @classmethod
     async def _get_news_video_by_ids_db(cls, db: AsyncSession, video_ids: list[int]):
         """数据库批量查询实现"""
-        result = await db.execute(select(NewsVideo).where(NewsVideo.video_id.in_(video_ids)))
+        result = await db.execute(select(NewsVideo).where(NewsVideo.news_id.in_(video_ids)))
         return result.scalars().all()
 
     @classmethod

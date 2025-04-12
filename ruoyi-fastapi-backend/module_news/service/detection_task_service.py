@@ -7,7 +7,7 @@ from module_news.dao.detection_task_dao import Detection_taskDao
 from module_news.dao.news_info_dao import News_infoDao
 from module_img.dao.news_img_dao import News_imgDao
 from module_video.dao.news_video_dao import News_videoDao
-from module_video.dao.news_video_dao import Video_infoDao
+from module_video.dao.news_video_dao import News_videoDao
 from module_news.entity.vo.detection_task_vo import DeleteDetection_taskModel, Detection_taskModel, \
     Detection_taskPageQueryModel
 from utils.common_util import CamelCaseUtil
@@ -186,6 +186,7 @@ class Detection_taskService:
                         input_data = news_img
                     elif news_video:
                         input_data = news_video
+                    logger.info(f"新闻{news_id}输入数据：{input_data}")
                     predict_tasks.append((
                         news_id,
                         self._async_predict(base_text,input_data)
