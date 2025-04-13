@@ -185,3 +185,120 @@
   display: inline-block;
   line-height: 1;
 }
+
+/* 教程相关样式 */
+.highlight-element {
+  position: relative;
+  box-shadow: 0 0 0 4rpx rgba(74, 144, 226, 0.3),
+    0 8rpx 20rpx rgba(74, 144, 226, 0.2) !important;
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+  z-index: 1001;
+}
+
+/* 特定元素的高亮样式覆盖 */
+.input-wrapper.highlight-element {
+  background: transparent;
+}
+
+.input-wrapper.highlight-element .input-area {
+  background: white;
+}
+
+.detect-btn.highlight-element {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+}
+
+.result-section.highlight-element {
+  background: white;
+}
+
+.tutorial-highlight {
+  position: fixed;
+  border: 2rpx solid rgba(74, 144, 226, 0.8);
+  box-shadow: 0 0 20rpx rgba(74, 144, 226, 0.6);
+  z-index: 1001;
+  background: transparent;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  opacity: 0;
+  /* 第三步的固定位置和大小 */
+  top: 558rpx;
+  left: 30rpx;
+  width: calc(100% - 60rpx);
+  height: 400rpx;
+  border-radius: 16rpx;
+}
+
+.tutorial-highlight.show-highlight {
+  opacity: 1;
+}
+
+.tutorial-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+}
+
+.tutorial-tip {
+  position: fixed;
+  background: #4a90e2;
+  color: white;
+  padding: 16rpx 24rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  z-index: 1002;
+  max-width: 400rpx;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  animation: tipPulse 2s infinite;
+  pointer-events: auto;
+  left: 50%;
+}
+
+@keyframes tipPulse {
+  0% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  50% {
+    transform: translate(-50%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.tip-input {
+  top: 440rpx;
+  transform: translateX(-50%);
+}
+
+.tip-detect {
+  top: 548rpx;
+  transform: translateX(-50%);
+}
+
+.tip-result {
+  top: 978rpx;
+  transform: translateX(-50%);
+  animation: none;
+}
+
+/* 结果占位样式 */
+.result-placeholder {
+  padding: 60rpx 30rpx;
+  text-align: center;
+}
+
+.placeholder-text {
+  font-size: 28rpx;
+  color: #999;
+  font-weight: 500;
+}

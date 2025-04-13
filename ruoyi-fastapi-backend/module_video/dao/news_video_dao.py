@@ -3,6 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from module_video.entity.do.news_video_do import NewsVideo
 from module_video.entity.vo.news_video_vo import News_videoModel, News_videoPageQueryModel
 from utils.page_util import PageUtil
+from redis import asyncio as aioredis
+from typing import Optional, List
+import json
 
 
 class News_videoDao:
@@ -35,26 +38,45 @@ class News_videoDao:
         return news_video_info
 
     @classmethod
-    async def get_news_video_detail_by_info(cls, db: AsyncSession, news_video: News_videoModel):
+    async def get_news_video_by_ids(
+        cls,
+        db: AsyncSession,
+        video_ids: list[int],
+        redis: aioredis.Redis = None
+    ) -> list[NewsVideo]:
         """
-        根据新闻视频参数获取新闻视频信息
-
-        :param db: orm对象
-        :param news_video: 新闻视频参数对象
-        :return: 新闻视频信息对象
+        批量获取新闻视频（优先使用 Redis 缓存）
         """
-        news_video_info = (
-            (
-                await db.execute(
-                    select(NewsVideo).where(
-                    )
-                )
-            )
-            .scalars()
-            .first()
-        )
+        if not redis:
+            return await cls._get_news_video_by_ids_db(db, video_ids)
 
-        return news_video_info
+        cache_keys = [f"news_video:{vid}" for vid in video_ids]
+        cached_data = await redis.mget(cache_keys)
+
+        cached_dict = {}
+        missed_ids = []
+        for vid, data in zip(video_ids, cached_data):
+            if data:
+                cached_dict[vid] = NewsVideo(**json.loads(data))
+            else:
+                missed_ids.append(vid)
+
+        if missed_ids:
+            db_videos = await cls._get_news_video_by_ids_db(db, missed_ids)
+            async with redis.pipeline() as pipe:
+                for video in db_videos:
+                    key = f"news_video:{video.video_id}"
+                    pipe.setex(key, 3600, json.dumps(video.__dict__))
+                await pipe.execute()
+            cached_dict.update({video.video_id: video for video in db_videos})
+
+        return [cached_dict.get(vid) for vid in video_ids]
+
+    @classmethod
+    async def _get_news_video_by_ids_db(cls, db: AsyncSession, video_ids: list[int]):
+        """数据库批量查询实现"""
+        result = await db.execute(select(NewsVideo).where(NewsVideo.news_id.in_(video_ids)))
+        return result.scalars().all()
 
     @classmethod
     async def get_news_video_list(cls, db: AsyncSession, query_object: News_videoPageQueryModel, is_page: bool = False):

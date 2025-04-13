@@ -5,11 +5,11 @@
   </view>
 
   <view class="input-section">
-    <view class="input-wrapper">
+    <view class="input-wrapper {{currentTutorialStep === 1 ? 'highlight-element' : ''}}">
       <textarea class="input-area" placeholder="请输入需要检测的新闻内容..." bindinput="onInputChange" value="{{inputText}}"></textarea>
       <view class="word-count">{{inputText.length || 0}}/500</view>
     </view>
-    <button class="detect-btn" bindtap="detectNews">
+    <button class="detect-btn {{currentTutorialStep === 2 ? 'highlight-element' : ''}}" bindtap="detectNews">
       <text class="btn-text">开始检测</text>
     </button>
   </view>
@@ -42,4 +42,14 @@
       </view>
     </view>
   </view>
+
+  <!-- 教程遮罩层 -->
+  <block wx:if="{{showTutorial}}">
+    <view class="tutorial-mask" bindtap="nextTutorialStep"></view>
+    <!-- 第三步的固定高亮区域 -->
+    <view class="tutorial-highlight {{currentTutorialStep === 3 ? 'show-highlight' : ''}}" />
+    <view class="tutorial-tip {{currentTutorialStep === 1 ? 'tip-input' : currentTutorialStep === 2 ? 'tip-detect' : 'tip-result'}}" bindtap="nextTutorialStep">
+      {{tutorialTips[currentTutorialStep - 1]}}
+    </view>
+  </block>
 </view> 
