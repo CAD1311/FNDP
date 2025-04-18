@@ -1,6 +1,9 @@
 # BreezeGuard: Intelligent False News Detection System
 # 清风知言虚假新闻检测系统
 
+
+![Logo](assets/cover.png)
+
 ## 项目简介
 这是一个基于FastAPI和Vue.js的全栈Web应用程序，集成了大语言模型，提供智能问答和虚假新闻检测功能。项目基于RuoYi框架进行开发，包含完整的前后端实现。本项目是2025年服务外包大赛A21赛题的比赛项目，可供参考。
 
@@ -110,8 +113,6 @@ npm run dev
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开一个 Pull Request -->
 
-## 许可证
-[建议添加许可证信息，例如 MIT License 或 Apache License 2.0]
 
 
 
