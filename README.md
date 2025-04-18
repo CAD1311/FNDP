@@ -1,35 +1,22 @@
 # 智能问答系统
 
 ## 项目简介
-这是一个基于FastAPI和Vue.js的全栈Web应用程序，集成了大语言模型，提供智能问答功能。项目基于RuoYi框架进行开发，包含完整的前后端实现。
+这是一个基于FastAPI和Vue.js的全栈Web应用程序，集成了大语言模型，提供智能问答功能。项目基于RuoYi框架进行开发，包含完整的前后端实现。本项目是2025年服务外包大赛A21赛题的比赛项目,大家可以参考
 
-## 技术栈
-### 后端
-- Python 3.x
-- FastAPI
-- MySQL
-- PyTorch 2.23.1
-- CUDA 11.8+
-- Qwen大语言模型
-
-### 前端
-- Vue.js
-- Node.js
-- Vite
 
 ## 系统要求
 - CUDA 11.8或更高版本
-- Python 3.x
+- Python 3.10
 - Node.js
-- MySQL数据库
+- MySQL数据库,运行在本地的3306端口上
 - 足够的GPU显存以运行大语言模型
 
 ## 安装步骤
 
 ### 1. 克隆项目
 ```bash
-git clone [项目地址]
-cd [项目目录]
+git clone git@github.com:CAD1311/FNDP.git
+cd FNDP
 ```
 
 ### 2. 后端配置
@@ -41,7 +28,7 @@ cd ruoyi-fastapi-backend
 pip install -r requirements.txt
 
 # 配置大语言模型
-# 将final.zip解压后重命名为qwen，放置在ruoyi-fastapi-backend目录下
+将模型(在huggingface社区支持的)解压后重命名为qwen，放置在ruoyi-fastapi-backend目录下
 ```
 
 ### 3. 数据库配置
@@ -52,7 +39,7 @@ CREATE DATABASE test;
 # 配置用户权限
 CREATE USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';
 
-# 导入数据
+# 导入动态路由和初始用户等数据
 mysql -u root -p test < dump-test.sql
 ```
 
