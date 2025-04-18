@@ -1,7 +1,15 @@
-# 智能问答系统
+# BreezeGuard: Intelligent False News Detection System
+# 清风知言虚假新闻检测系统
 
 ## 项目简介
-这是一个基于FastAPI和Vue.js的全栈Web应用程序，集成了大语言模型，提供智能问答功能。项目基于RuoYi框架进行开发，包含完整的前后端实现。本项目是2025年服务外包大赛A21赛题的比赛项目,大家可以参考
+这是一个基于FastAPI和Vue.js的全栈Web应用程序，集成了大语言模型，提供智能问答和虚假新闻检测功能。项目基于RuoYi框架进行开发，包含完整的前后端实现。本项目是2025年服务外包大赛A21赛题的比赛项目,大家可以参考
+
+## 项目功能
+本项目包含了以下组件的简单实现:
+-Web端 ruoyi-fastapi-frontend
+-Fastapi服务端 ruoyi-fastapi-backend
+-浏览器插件端 browser_utils
+-小程序 miniprogram
 
 
 ## 系统要求
@@ -9,7 +17,7 @@
 - Python 3.10
 - Node.js
 - MySQL数据库,运行在本地的3306端口上
-- 足够的GPU显存以运行大语言模型
+- 足够的GPU显存以运行大语言模型(如本项目所使用的Qwen2.5VL-3B,最低的显存要求为10gb)
 
 ## 安装步骤
 
@@ -69,6 +77,7 @@ python app.py
 cd ruoyi-fastapi-frontend
 npm run dev
 ```
+web服务将会在8000端口启动
 
 ## 项目结构
 ```
@@ -81,15 +90,7 @@ npm run dev
 ```
 
 ## 使用说明
-[在这里添加系统的主要功能和使用方法说明]
+本项目提供多种功能:
+web端
 
-## 注意事项
-1. 确保CUDA和PyTorch版本匹配
-2. 运行大语言模型需要足够的GPU显存
-3. 请确保所有必要的端口未被占用
 
-## 贡献指南
-[如何贡献代码，提交Issue等说明]
-
-## 许可证
-[添加许可证信息]
